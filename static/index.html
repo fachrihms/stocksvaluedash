@@ -1,0 +1,2276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dasbor Valuasi Saham</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- Data label grafik: angka tampil langsung di atas bar/titik (ikut ke PDF) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<!-- Export PDF hasil analisis (client-side, data tidak dikirim ke server) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+  :root {
+    --bg: #0F1720;
+    --bg-raised: #151F2B;
+    --line: #263241;
+    --text: #E8ECF1;
+    --text-dim: #8A97A8;
+    --gold: #D4A44C;
+    --green: #4FAE8A;
+    --red: #D2694A;
+    --serif: 'Source Serif 4', Georgia, serif;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  header {
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 32px;
+  }
+
+  header h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 2.4rem;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 0.98rem;
+    max-width: 60ch;
+    margin: 0;
+  }
+
+  /* --- Panduan sumber data --- */
+  .source-guide {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 20px 24px;
+    margin-bottom: 32px;
+  }
+
+  .source-guide summary {
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  .source-guide-body {
+    margin-top: 16px;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+  }
+
+  .source-guide-body a {
+    color: var(--gold);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(212, 164, 76, 0.4);
+  }
+
+  .source-guide-body a:hover { border-bottom-color: var(--gold); }
+
+  .source-guide-body h4 {
+    color: var(--text);
+    font-size: 0.85rem;
+    margin: 16px 0 8px;
+    font-family: var(--sans);
+    font-weight: 600;
+  }
+
+  .source-guide-body ol {
+    margin: 8px 0;
+    padding-left: 20px;
+  }
+
+  .source-guide-body li { margin-bottom: 4px; }
+
+  /* --- Upload zone --- */
+  .upload-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  @media (max-width: 720px) {
+    .upload-grid { grid-template-columns: 1fr; }
+  }
+
+  .dropzone {
+    border: 1px dashed var(--line);
+    border-radius: 4px;
+    padding: 24px 20px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+    background: var(--bg-raised);
+  }
+
+  .dropzone:hover, .dropzone.drag-over {
+    border-color: var(--gold);
+    background: #1A2530;
+  }
+
+  .dropzone.filled {
+    border-style: solid;
+    border-color: var(--green);
+  }
+
+  .dropzone-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .dropzone-title {
+    font-family: var(--serif);
+    font-size: 1.15rem;
+    margin-bottom: 8px;
+  }
+
+  .dropzone-hint {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  .dropzone input { display: none; }
+
+  .file-chip-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 4px;
+  }
+
+  .file-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #1A2530;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 6px 10px;
+    font-size: 0.82rem;
+    font-family: var(--mono);
+  }
+
+  .file-chip-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 8px;
+  }
+
+  .file-chip-remove {
+    background: none;
+    border: none;
+    color: var(--red);
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0 4px;
+    flex-shrink: 0;
+  }
+
+  .file-chip-remove:hover { opacity: 0.7; }
+
+  .shares-input-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+
+  .shares-input-row label {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+  }
+
+  .shares-input-row input {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 3px;
+    font-family: var(--mono);
+    font-size: 0.9rem;
+    width: 200px;
+  }
+
+  .shares-input-row input:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+
+  button.analyze-btn {
+    background: var(--gold);
+    color: #1A1508;
+    border: none;
+    padding: 12px 28px;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 0.95rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+  }
+
+  button.analyze-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  button.analyze-btn:not(:disabled):hover {
+    opacity: 0.88;
+  }
+
+  .status-line {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    min-height: 20px;
+  }
+
+  .status-line.error { color: var(--red); }
+  .status-line.warn { color: var(--gold); }
+
+  /* --- Dashboard --- */
+  #dashboard { display: none; margin-top: 24px; }
+  #dashboard.visible { display: block; }
+
+  .entity-header {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .entity-header-main { min-width: 0; }
+
+  /* Tombol Unduh PDF di header entitas (export client-side via jsPDF) */
+  .pdf-btn {
+    appearance: none;
+    flex-shrink: 0;
+    border: 1px solid var(--line);
+    background: var(--bg-raised);
+    color: var(--gold);
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .pdf-btn:hover { border-color: var(--gold); }
+
+  .pdf-btn:disabled { opacity: 0.5; cursor: wait; }
+
+  .entity-header .name {
+    font-family: var(--serif);
+    font-size: 1.8rem;
+    font-weight: 600;
+  }
+
+  .entity-header .period {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    font-family: var(--mono);
+  }
+
+  .trend-narrative {
+    background: var(--bg-raised);
+    border-left: 3px solid var(--green);
+    padding: 14px 20px;
+    margin: 20px 0 40px;
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .method-panel {
+    background: var(--bg-raised);
+    border-left: 3px solid var(--gold);
+    padding: 12px 16px;
+    margin: 18px 0 28px;
+    color: var(--text-dim);
+    font-size: 0.8rem;
+    line-height: 1.6;
+  }
+
+  .method-panel summary {
+    color: var(--text);
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .method-panel p { margin: 8px 0 0; }
+  .method-panel strong { color: var(--text); }
+
+  /* --- Tab Hasil Analisis / Kamus Rasio (satu halaman, state aman) ---
+     Ganti tab hanya show/hide panel: input file, jumlah saham, kurs, dan
+     instance Chart.js tidak pernah disentuh, jadi hasil analisis user
+     tetap utuh walau bolak-balik baca kamus rasio. */
+  .result-tabs {
+    display: flex;
+    gap: 4px;
+    margin-top: 64px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .result-tab {
+    appearance: none;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-dim);
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+
+  .result-tab:hover { color: var(--text); }
+
+  .result-tab.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+
+  .glossary-content { margin-top: 28px; }
+
+  .glossary-content .legend-group { margin-bottom: 20px; }
+
+  .glossary-content .legend-group-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .glossary-content .legend-item {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .glossary-content .legend-item:last-child { border-bottom: none; }
+
+  .glossary-content .legend-item-name {
+    font-family: var(--serif);
+    font-size: 1rem;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .glossary-content .legend-item-formula {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--gold);
+    background: #1A2530;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-bottom: 6px;
+  }
+
+  .glossary-content .legend-item-source {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .glossary-content .legend-item-source::before {
+    content: "Baris lapkeu: ";
+    opacity: 0.7;
+  }
+
+  .glossary-content .legend-item-meaning {
+    font-size: 0.84rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+
+  .glossary-loading { color: var(--text-dim); font-size: 0.85rem; }
+
+  .interim-note {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    padding: 10px 0 20px;
+    max-width: 70ch;
+  }
+
+  .interim-note strong { color: var(--text); }
+
+  .period-mismatch-warning {
+    background: rgba(210, 105, 74, 0.12);
+    border-left: 3px solid var(--red);
+    padding: 14px 20px;
+    margin: 20px 0 40px;
+    font-size: 0.88rem;
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  .period-mismatch-warning strong { color: var(--red); }
+
+  .section {
+    margin-bottom: 48px;
+  }
+
+  .section-title {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .metric-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 32px 24px;
+  }
+
+  .metric {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .metric-label-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  .metric-label {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+  }
+
+  .verdict-badge {
+    font-size: 0.68rem;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .verdict-badge.good { background: rgba(79, 174, 138, 0.18); color: var(--green); }
+  .verdict-badge.ok { background: rgba(212, 164, 76, 0.18); color: var(--gold); }
+  .verdict-badge.watch { background: rgba(210, 105, 74, 0.18); color: var(--red); }
+
+  .metric-value {
+    font-family: var(--serif);
+    font-size: 2rem;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  .metric-value.positive { color: var(--green); }
+  .metric-value.negative { color: var(--red); }
+  .metric-value.neutral { color: var(--text); }
+  .metric-value.unavailable {
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    font-family: var(--sans);
+    font-weight: 400;
+  }
+
+  .metric-sub {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-top: 4px;
+    font-family: var(--mono);
+  }
+
+  .metric-benchmark-note {
+    font-size: 0.76rem;
+    color: var(--text-dim);
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+
+  /* --- Charts --- */
+  .chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+  }
+
+  @media (max-width: 720px) {
+    .chart-grid { grid-template-columns: 1fr; }
+  }
+
+  .chart-box {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 20px;
+  }
+
+  .chart-box h4 {
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    margin: 0 0 12px;
+    font-weight: 500;
+  }
+
+  .chart-box canvas { max-height: 240px; }
+
+  /* --- Trend table --- */
+  .trend-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 0.85rem;
+  }
+
+  .trend-table th {
+    text-align: left;
+    padding: 8px 12px;
+    color: var(--text-dim);
+    font-family: var(--sans);
+    font-weight: 500;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .trend-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .trend-table td.positive { color: var(--green); }
+  .trend-table td.negative { color: var(--red); }
+
+  .interim-row { opacity: 0.7; font-style: italic; }
+
+  .interim-tag {
+    font-size: 0.68rem;
+    font-style: normal;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    border-radius: 8px;
+    padding: 0px 6px;
+    margin-left: 4px;
+  }
+
+  /* --- Warnings panel --- */
+  .warnings-panel {
+    background: var(--bg-raised);
+    border-left: 3px solid var(--gold);
+    padding: 16px 20px;
+    margin-top: 40px;
+    font-size: 0.85rem;
+  }
+
+  .warnings-panel summary {
+    cursor: pointer;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  .warnings-panel ul {
+    margin: 12px 0 0;
+    padding-left: 20px;
+    color: var(--text-dim);
+  }
+
+  .warnings-panel li { margin-bottom: 6px; }
+
+  .disclaimer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    max-width: 70ch;
+  }
+
+  /* ============================================================
+     Layout sidebar 3 menu: Analisis | Legenda | Prediksi
+     - Desktop: sidebar tetap di kiri, konten di kanan.
+     - Mobile (<=900px): sidebar jadi drawer geser + topbar hamburger.
+     Pindah menu hanya show/hide <section class="view"> -- file yang
+     sudah diupload, input, dan instance Chart.js tidak pernah disentuh.
+     ============================================================ */
+  .topbar {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--bg-raised);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .topbar-brand {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.05rem;
+  }
+
+  .hamburger {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    color: var(--text);
+    font-size: 1.15rem;
+    line-height: 1;
+    padding: 6px 10px;
+    cursor: pointer;
+  }
+
+  .app-layout {
+    display: flex;
+    align-items: stretch;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 250px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: var(--bg-raised);
+    border-right: 1px solid var(--line);
+    padding: 28px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .sidebar-brand {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 1.25rem;
+    margin-bottom: 2px;
+  }
+
+  .sidebar-sub {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
+
+  .side-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .side-nav-btn {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    text-align: left;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 10px 12px;
+    cursor: pointer;
+  }
+
+  .side-nav-btn:hover { color: var(--text); background: #1A2530; }
+
+  .side-nav-btn.active {
+    color: var(--gold);
+    background: #1A2530;
+    border-color: var(--line);
+  }
+
+  .side-nav-btn .nav-ico { font-size: 1.05rem; width: 22px; text-align: center; }
+
+  .side-nav-btn small {
+    display: block;
+    font-size: 0.7rem;
+    font-weight: 400;
+    color: var(--text-dim);
+  }
+
+  .sidebar-foot {
+    margin-top: auto;
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    line-height: 1.5;
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+
+  .sidebar-backdrop { display: none; }
+
+  .main-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .main-content .wrap {
+    margin: 0 auto;
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* --- View Prediksi --- */
+  .pred-controls {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .pred-field label {
+    display: block;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .pred-field select {
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    color: var(--text);
+    padding: 8px 12px;
+    border-radius: 3px;
+    font-family: var(--sans);
+    font-size: 0.88rem;
+  }
+
+  .model-checks {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .model-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    background: var(--bg-raised);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 6px 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .model-check input { accent-color: var(--gold); }
+
+  .pred-table-wrap { overflow-x: auto; }
+
+  .bench-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.84rem;
+  }
+
+  .bench-table th {
+    text-align: left;
+    padding: 8px 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+  }
+
+  .bench-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+
+  .bench-table td.dim { color: var(--text-dim); }
+
+  @media (max-width: 900px) {
+    .topbar { display: flex; }
+    .sidebar {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 50;
+      transform: translateX(-105%);
+      transition: transform 0.2s ease;
+      height: 100dvh;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-backdrop.visible {
+      display: block;
+      position: fixed;
+      inset: 0;
+      z-index: 45;
+      background: rgba(0, 0, 0, 0.55);
+    }
+    .main-content .wrap { padding-top: 28px; }
+    header h1 { font-size: 1.9rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="hamburger" id="btn-hamburger" type="button" aria-label="Buka menu">&#9776;</button>
+  <div class="topbar-brand">Dasbor Valuasi Saham</div>
+</div>
+
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-brand">Dasbor Valuasi Saham</div>
+    <div class="sidebar-sub">Analisis fundamental lapkeu IDX + prediksi harga historis dalam satu tempat.</div>
+    <nav class="side-nav">
+      <button class="side-nav-btn active" id="nav-analisis" type="button">
+        <span class="nav-ico">📊</span>
+        <span>Analisis Fundamental<small>Input lapkeu &amp; rasio valuasi</small></span>
+      </button>
+      <button class="side-nav-btn" id="nav-legenda" type="button">
+        <span class="nav-ico">📖</span>
+        <span>Legenda Angka<small>Arti tiap rasio &amp; patokan</small></span>
+      </button>
+      <button class="side-nav-btn" id="nav-prediksi" type="button">
+        <span class="nav-ico">🔮</span>
+        <span>Prediksi Saham<small>4 model ML dari harga historis</small></span>
+      </button>
+    </nav>
+    <div class="sidebar-foot">Bukan nasihat keuangan. Selalu verifikasi ke laporan asli &amp; bandingkan dengan rata-rata sektor.</div>
+  </aside>
+  <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+  <main class="main-content">
+<div class="wrap">
+
+  <section class="view active" id="view-analisis">
+  <header>
+    <h1>Dasbor Valuasi Saham</h1>
+    <p>Upload laporan keuangan tahunan (PDF atau Excel/XLSX, format IDX/OJK) dan riwayat harga saham (CSV) untuk melihat rasio pertumbuhan, leverage, arus kas, dan valuasi dalam satu tampilan.</p>
+  </header>
+
+  <details class="source-guide">
+    <summary>Dari mana ambil data laporan keuangan, harga saham historis, &amp; jumlah saham beredar?</summary>
+    <div class="source-guide-body">
+      <h4>Laporan keuangan (PDF atau Excel/XLSX)</h4>
+      <p>Unduh langsung dari situs resmi IDX <a href="https://www.idx.co.id/id/perusahaan-tercatat/laporan-keuangan-dan-tahunan" target="_blank" rel="noopener noreferrer">IDX Laporan Keuangan</a> (cari halaman "Financial Statements &amp; Annual Report" di idx.co.id). Cari nama emiten, lalu unduh laporan tahunan (annual) untuk tahun yang diinginkan -- format PDF maupun Excel/XLSX (ekspor XBRL) keduanya didukung. Catatan: file Excel dari IDX biasanya dibungkus .zip -- ekstrak dulu, lalu upload file .xlsx-nya di sini.</p>
+
+      <h4>Riwayat harga saham historis (CSV)</h4>
+      <p>Cara paling gampang: ketik di Google <strong>"harga historis saham [ticker saham]"</strong> (misal "harga historis saham ISAT") — biasanya hasil teratas merujuk ke situs <a href="https://id.investing.com/equities" target="_blank" rel="noopener noreferrer">investing.com</a> bagian equities. Buka halaman saham yang dicari, cari tab/menu <strong>"Data Historis"</strong>, atur rentang tanggal yang diinginkan, lalu unduh sebagai CSV (biasanya ada tombol unduh/download di halaman itu).</p>
+      <p>Format kolomnya (Tanggal, Terakhir, Pembukaan, Tertinggi, Terendah, Vol., Perubahan%) sudah sesuai dengan yang dibaca otomatis oleh dasbor ini — tidak perlu diedit lagi.</p>
+
+      <h4>Jumlah saham beredar (untuk hitung PER/PBV)</h4>
+      <p>Ambil dari halaman "Ringkasan Saham" di <a href="https://www.idx.co.id/id/data-pasar/ringkasan-perdagangan/ringkasan-saham/" target="_blank" rel="noopener noreferrer">IDX Ringkasan Saham</a>, dengan langkah:</p>
+      <ol>
+        <li>Buka Bursa Efek Indonesia di browser.</li>
+        <li>Arahkan kursor ke menu <strong>Data Pasar</strong>, lalu pilih <strong>Ringkasan Saham</strong>.</li>
+        <li>Centang kolom <strong>Listed Share</strong> untuk menampilkan jumlah saham yang tercatat/beredar pada tabel.</li>
+      </ol>
+      <p>Angka yang muncul di kolom itu dalam <strong>lembar saham penuh</strong> — masukkan apa adanya ke kolom "Jumlah saham beredar" di bawah, tanpa dibagi/dikali lagi.</p>
+    </div>
+  </details>
+
+  <div class="upload-grid">
+    <div class="dropzone" id="dz-pdf">
+      <span class="dropzone-label">Wajib — bisa lebih dari satu file</span>
+      <div class="dropzone-title">Laporan Keuangan (PDF / Excel)</div>
+      <div class="dropzone-hint" id="dz-pdf-hint">Klik atau seret beberapa file PDF/XLSX ke sini (mis. laporan 2023, 2024, 2025) untuk tren multi-tahun -- boleh campur format</div>
+      <div class="file-chip-list" id="pdf-file-list"></div>
+      <input type="file" id="input-pdf" accept=".pdf,.xlsx" multiple>
+    </div>
+    <div class="dropzone" id="dz-csv">
+      <span class="dropzone-label">Opsional</span>
+      <div class="dropzone-title">Riwayat Harga Saham (CSV)</div>
+      <div class="dropzone-hint" id="dz-csv-hint">Klik atau seret file ke sini</div>
+      <div class="file-chip-list" id="csv-file-list"></div>
+      <input type="file" id="input-csv" accept=".csv">
+    </div>
+  </div>
+
+  <div class="shares-input-row">
+    <label for="shares-outstanding">Jumlah saham beredar dalam lembar penuh, opsional (untuk hitung PER/PBV) — contoh: 32250000000:</label>
+    <input type="text" id="shares-outstanding" placeholder="32250000000">
+  </div>
+  <div class="shares-input-row" id="exchange-rate-row" style="display:none">
+    <label for="exchange-rate">Kurs mata uang laporan ke Rupiah — wajib kalau laporan disajikan dalam mata uang asing (mis. USD → 16250):</label>
+    <input type="text" id="exchange-rate" placeholder="16250">
+  </div>
+
+  <details class="source-guide" id="db-panel">
+    <summary>Database spreadsheet — opsional, biar analisis berikutnya lebih cepat &amp; bisa update inkremental</summary>
+    <div class="source-guide-body">
+      <p>Cara pakai: analisis seperti biasa sekali (hasil otomatis tersimpan di database lokal server).
+      Berikutnya cukup upload <strong>1 laporan terbaru saja</strong> — tahun-tahun lama otomatis
+      digabung dari database. Kalau mau simpan di Google Sheets: unduh CSV/XLSX di bawah,
+      lalu <strong>File &gt; Import</strong> ke Sheet kamu; tempel link share Sheet ke kolom
+      bawah supaya periode lama dibaca dari sana.</p>
+      <div class="shares-input-row" style="margin-top:12px">
+        <label for="spreadsheet-url">Link Google Sheets / CSV database (opsional):</label>
+        <input type="text" id="spreadsheet-url" placeholder="https://docs.google.com/spreadsheets/d/..." style="width:340px">
+      </div>
+      <div class="shares-input-row">
+        <label><input type="checkbox" id="use-database" checked style="width:auto"> Gunakan database lokal (periode lama + cache file)</label>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button class="pdf-btn" id="btn-db-export-csv" type="button">Unduh DB (CSV)</button>
+        <button class="pdf-btn" id="btn-db-export-xlsx" type="button">Unduh DB (XLSX)</button>
+        <button class="pdf-btn" id="btn-db-import" type="button">Muat dari link spreadsheet</button>
+      </div>
+      <div class="status-line" id="db-status"></div>
+    </div>
+  </details>
+
+  <button class="analyze-btn" id="btn-analyze" disabled>Analisis</button>
+  <div class="status-line" id="status"></div>
+
+  <div id="dashboard"></div>
+
+  </section><!-- /view-analisis -->
+
+  <section class="view" id="view-legenda">
+    <header>
+      <h1>Legenda Angka</h1>
+      <p>Arti setiap rasio di dashboard, rumus, baris laporan keuangan sumbernya, dan patokan kasar Baik / Wajar / Perhatikan. Patokan ini heuristik umum lintas industri, bukan standar resmi.</p>
+    </header>
+    <div class="section">
+      <div class="section-title">Patokan Benchmark</div>
+      <div class="pred-table-wrap">
+        <table class="bench-table">
+          <thead>
+            <tr><th>Rasio</th><th>Baik</th><th>Wajar</th><th>Perhatikan</th><th>Catatan</th></tr>
+          </thead>
+          <tbody id="benchmark-body">
+            <tr><td colspan="5" class="dim">Memuat patokan…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Kamus Rasio</div>
+      <div id="glossary-content" class="glossary-content">
+        <p class="glossary-loading">Memuat kamus rasio…</p>
+      </div>
+    </div>
+  </section><!-- /view-legenda -->
+
+  <section class="view" id="view-prediksi">
+    <header>
+      <h1>Prediksi Saham Sederhana</h1>
+      <p>Empat model baseline (regresi linier, kuadratik, rata-rata bergerak, exponential smoothing) dilatih dari CSV harga historis yang sama dengan yang dipakai di Analisis. Setiap model diuji dulu secara holdout supaya kamu bisa lihat sendiri error-nya (RMSE/MAPE) sebelum percaya forecast-nya. <strong>Bukan ramalan akurat &amp; bukan nasihat keuangan.</strong></p>
+    </header>
+
+    <div class="source-guide">
+      <div class="source-guide-body" style="margin-top:0">
+        <p style="margin-top:0">Pakai file CSV yang sudah diupload di menu <strong>Analisis</strong> (otomatis terbawa ke sini), atau seret file lain ke kotak di bawah khusus untuk prediksi.</p>
+        <div class="dropzone" id="dz-prediksi" style="margin-top:12px">
+          <span class="dropzone-label">Opsional — file khusus prediksi</span>
+          <div class="dropzone-title">CSV Harga Khusus Prediksi</div>
+          <div class="dropzone-hint" id="dz-prediksi-hint">Kosongkan untuk memakai CSV dari menu Analisis, atau klik/seret file lain ke sini</div>
+          <div class="file-chip-list" id="prediksi-file-list"></div>
+          <input type="file" id="input-prediksi" accept=".csv">
+        </div>
+      </div>
+    </div>
+
+    <div class="pred-controls">
+      <div class="pred-field">
+        <label for="pred-horizon">Horizon prediksi (hari bursa)</label>
+        <select id="pred-horizon">
+          <option value="14">14 hari</option>
+          <option value="30" selected>30 hari</option>
+          <option value="60">60 hari</option>
+          <option value="90">90 hari</option>
+        </select>
+      </div>
+      <div class="pred-field">
+        <label>Model yang ditampilkan</label>
+        <div class="model-checks" id="pred-models">
+          <label class="model-check"><input type="checkbox" value="linear" checked> Linier</label>
+          <label class="model-check"><input type="checkbox" value="quadratic" checked> Kuadratik</label>
+          <label class="model-check"><input type="checkbox" value="sma" checked> SMA-20</label>
+          <label class="model-check"><input type="checkbox" value="exp_smooth" checked> Exp. Smoothing</label>
+        </div>
+      </div>
+      <button class="analyze-btn" id="btn-predict" type="button">Prediksi</button>
+    </div>
+    <div class="status-line" id="pred-status"></div>
+
+    <div id="prediksi-result" style="display:none">
+      <div class="section">
+        <div class="section-title">Grafik Histori vs Forecast</div>
+        <div class="chart-box">
+          <h4 id="prediksi-chart-title">Harga penutupan + forecast per model</h4>
+          <canvas id="chart-prediksi"></canvas>
+        </div>
+        <div class="trend-narrative" id="prediksi-narrative" style="margin-top:16px"></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Akurasi Holdout &amp; Ringkasan Forecast</div>
+        <div class="pred-table-wrap">
+          <table class="bench-table">
+            <thead>
+              <tr><th>Model</th><th>RMSE holdout</th><th>MAE holdout</th><th>MAPE holdout</th><th>Forecast terakhir</th><th>Perubahan s/d horizon</th></tr>
+            </thead>
+            <tbody id="prediksi-metrics-body"></tbody>
+          </table>
+        </div>
+        <div class="interim-note" id="prediksi-holdout-note"></div>
+      </div>
+      <div class="disclaimer">
+        Model-model ini hanya ekstrapolasi pola historis dan tidak tahu aksi korporasi, sentimen pasar, atau kondisi makro.
+        Error holdout yang besar berarti model tidak cocok untuk saham ini -- jangan dipakai sebagai dasar keputusan beli/jual.
+      </div>
+    </div>
+  </section><!-- /view-prediksi -->
+
+</div><!-- /wrap -->
+  </main>
+</div><!-- /app-layout -->
+
+<script>
+const state = { financialFiles: [], csvFile: null };
+const charts = {}; // simpan instance Chart.js supaya bisa destroy sebelum render ulang
+
+// Plugin data label: angka digambar langsung di canvas grafik, jadi selain
+// tampil di dashboard juga otomatis tercetak di PDF (PDF mengambil snapshot
+// canvas lewat toDataURL). Guard kalau CDN plugin diblokir jaringan.
+if (typeof Chart !== 'undefined' && typeof ChartDataLabels !== 'undefined') {
+  Chart.register(ChartDataLabels);
+}
+
+function renderFileChips(listId, files, onRemove) {
+  const listEl = document.getElementById(listId);
+  listEl.innerHTML = files.map((f, idx) => `
+    <div class="file-chip">
+      <span class="file-chip-name">${f.name}</span>
+      <button class="file-chip-remove" data-idx="${idx}" title="Hapus file ini">&times;</button>
+    </div>
+  `).join('');
+  listEl.querySelectorAll('.file-chip-remove').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onRemove(parseInt(btn.dataset.idx));
+    });
+  });
+}
+
+function setupDropzone(zoneId, inputId, hintId, listId, multiple, getFiles, setFiles) {
+  const zone = document.getElementById(zoneId);
+  const input = document.getElementById(inputId);
+  const hint = document.getElementById(hintId);
+
+  zone.addEventListener('click', (e) => {
+    if (e.target.closest('.file-chip-remove')) return;
+    input.click();
+  });
+  input.addEventListener('change', () => {
+    if (input.files.length) addFiles(Array.from(input.files));
+    input.value = ''; // reset supaya bisa pilih file yang sama lagi kalau perlu
+  });
+  zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length) addFiles(Array.from(e.dataTransfer.files));
+  });
+
+  function addFiles(newFiles) {
+    // Peringatan dini untuk file XLSX rusak: laporan keuangan asli dari IDX
+    // adalah arsip ZIP berisi beberapa sheet, praktis selalu puluhan KB+
+    // (contoh nyata PGAS: download gagal menyisakan file 165 byte berisi
+    // sampah teks -- bukan ZIP -- dan hanya ketahuan saat di-parse server).
+    // Tidak memblokir, hanya mengingatkan; server tetap pemeriksa final.
+    for (const f of newFiles) {
+      if (/\.xlsx$/i.test(f.name) && f.size < 50 * 1024) {
+        statusEl = document.getElementById('status');
+        statusEl.className = 'status-line error';
+        statusEl.textContent = `"${f.name}" hanya ${f.size.toLocaleString('id-ID')} byte -- terlalu kecil untuk laporan XLSX asli. Kemungkinan download dari IDX gagal; coba unduh ulang.`;
+        break;
+      }
+    }
+    let current = getFiles();
+    current = multiple ? current.concat(newFiles) : newFiles.slice(0, 1);
+    setFiles(current);
+    refresh();
+  }
+
+  function removeFile(idx) {
+    let current = getFiles();
+    current = current.filter((_, i) => i !== idx);
+    setFiles(current);
+    refresh();
+  }
+
+  function refresh() {
+    const current = getFiles();
+    if (current.length > 0) {
+      zone.classList.add('filled');
+      hint.style.display = 'none';
+    } else {
+      zone.classList.remove('filled');
+      hint.style.display = 'block';
+    }
+    renderFileChips(listId, current, removeFile);
+    updateAnalyzeButton();
+  }
+}
+
+setupDropzone('dz-pdf', 'input-pdf', 'dz-pdf-hint', 'pdf-file-list', true,
+  () => state.financialFiles, (f) => { state.financialFiles = f; });
+setupDropzone('dz-csv', 'input-csv', 'dz-csv-hint', 'csv-file-list', false,
+  () => state.csvFile ? [state.csvFile] : [], (f) => { state.csvFile = f[0] || null; });
+
+function updateAnalyzeButton() {
+  document.getElementById('btn-analyze').disabled = state.financialFiles.length === 0;
+}
+
+const API_BASE = window.location.origin;
+
+document.getElementById('btn-analyze').addEventListener('click', async () => {
+  const statusEl = document.getElementById('status');
+  const btn = document.getElementById('btn-analyze');
+  statusEl.className = 'status-line';
+  statusEl.textContent = 'Memproses laporan keuangan...';
+  btn.disabled = true;
+
+  const formData = new FormData();
+  state.financialFiles.forEach(f => formData.append('financial_pdfs', f));
+  if (state.csvFile) formData.append('price_csv', state.csvFile);
+
+  const sharesRaw = document.getElementById('shares-outstanding').value.trim();
+  let url = `${API_BASE}/api/analyze`;
+  const params = [];
+  if (sharesRaw) {
+    const shares = parseFloat(sharesRaw.replace(/[.,\s]/g, ''));
+    if (!isNaN(shares)) params.push(`shares_outstanding=${shares}`);
+  }
+  const fxRaw = document.getElementById('exchange-rate').value.trim();
+  if (fxRaw) {
+    const fx = parseFloat(fxRaw.replace(/[.,\s]/g, ''));
+    if (!isNaN(fx)) params.push(`exchange_rate_to_idr=${fx}`);
+  }
+  const sheetUrl = document.getElementById('spreadsheet-url').value.trim();
+  if (sheetUrl) params.push(`spreadsheet_url=${encodeURIComponent(sheetUrl)}`);
+  const useDb = document.getElementById('use-database').checked;
+  if (!useDb) params.push(`use_database=false`);
+  if (params.length) url += `?` + params.join('&');
+
+  try {
+    const res = await fetch(url, { method: 'POST', body: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Server error (${res.status})`);
+    }
+    const data = await res.json();
+
+    // Laporan ber-mata-uang asing tanpa kurs: server menolak PER/PBV --
+    // munculkan input kurs (dengan default kasar bila USD) dan minta
+    // user isi lalu klik Analisis lagi.
+    const fxRow = document.getElementById('exchange-rate-row');
+    const fxInput = document.getElementById('exchange-rate');
+    if (data.ratios && data.ratios.currency_rate_missing) {
+      fxRow.style.display = '';
+      if (!fxInput.value.trim() && data.ratios.reporting_currency === 'USD') {
+        fxInput.value = '16250';
+      }
+      statusEl.className = 'status-line error';
+      statusEl.textContent = `Laporan disajikan dalam ${data.ratios.reporting_currency}. Isi kurs ke Rupiah di atas, lalu klik Analisis lagi.`;
+    } else {
+      fxRow.style.display = 'none';
+      statusEl.textContent = '';
+    }
+
+    renderDashboard(data);
+  } catch (e) {
+    const msg = String(e.message || '');
+    // Server menolak laporan mata-uang asing tanpa kurs (HTTP 422):
+    // munculkan input kurs + prefill kasar bila USD, minta user isi lalu
+    // klik Analisis lagi.
+    if (msg.includes('kurs')) {
+      document.getElementById('exchange-rate-row').style.display = '';
+      const fxInput = document.getElementById('exchange-rate');
+      if (!fxInput.value.trim() && msg.includes('USD')) fxInput.value = '16250';
+    }
+    statusEl.className = 'status-line error';
+    statusEl.textContent = `Gagal: ${msg}`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function fmtNum(n, decimals = 0) {
+  if (n === null || n === undefined) return null;
+  return n.toLocaleString('id-ID', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+
+// Nilai per-saham (EPS/BVPS/DPS) bisa sangat kecil untuk emiten dengan
+// saham beredar miliaran lembar dalam mata uang asing -- contoh nyata:
+// EPS POWR 0.0048 USD dibulatkan 2 desimal tampil "0.00" (bug tampilan
+// nyata). Angka < 1 otomatis pakai lebih banyak desimal supaya tetap
+// terbaca; angka >= 1 pakai 2 desimal seperti biasa.
+function fmtPerShare(n, decimals = 2) {
+  if (n === null || n === undefined) return null;
+  const eff = Math.abs(n) < 1 ? Math.max(decimals, 4) : decimals;
+  return fmtNum(n, eff);
+}
+
+function fmtPct(n, decimals = 1) {
+  if (n === null || n === undefined) return null;
+  const sign = n > 0 ? '+' : '';
+  return `${sign}${fmtNum(n, decimals)}%`;
+}
+
+// Label ringkas untuk angka besar di grafik (pendapatan bisa triliunan):
+// 2.312.345.678.901 -> "2,3 T" (triliun), 850.000.000.000 -> "850,0 M"
+// (miliar), 12.500.000 -> "12,5 jt". Dipakai untuk data label & tick sumbu Y
+// grafik pendapatan -- angka penuh tetap tersedia di tabel tren.
+function fmtCompact(v) {
+  if (v === null || v === undefined || isNaN(v)) return '';
+  const a = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (a >= 1e12) return `${sign}${fmtNum(a / 1e12, 1)} T`;
+  if (a >= 1e9) return `${sign}${fmtNum(a / 1e9, 1)} M`;
+  if (a >= 1e6) return `${sign}${fmtNum(a / 1e6, 1)} jt`;
+  return fmtNum(v);
+}
+
+function metricClass(n) {
+  if (n === null || n === undefined) return 'unavailable';
+  return n > 0 ? 'positive' : n < 0 ? 'negative' : 'neutral';
+}
+
+function verdictBadge(verdict) {
+  if (!verdict) return '';
+  const labels = { good: 'Baik', ok: 'Wajar', watch: 'Perhatikan' };
+  return `<span class="verdict-badge ${verdict}">${labels[verdict] || verdict}</span>`;
+}
+
+function metricHTML(label, value, subtext = null, verdict = null, benchmarkNote = null) {
+  const display = (value === null || value === undefined) ? 'Tidak tersedia' : value;
+  const cls = (value === null || value === undefined) ? 'unavailable' : metricClass(parseFloat(value));
+  return `
+    <div class="metric">
+      <div class="metric-label-row">
+        <div class="metric-label">${label}</div>
+        ${verdictBadge(verdict)}
+      </div>
+      <div class="metric-value ${cls}">${display}</div>
+      ${subtext ? `<div class="metric-sub">${subtext}</div>` : ''}
+      ${benchmarkNote ? `<div class="metric-benchmark-note">${benchmarkNote}</div>` : ''}
+    </div>`;
+}
+
+function buildTrendNarrative(multiYear, entityName) {
+  if (multiYear.length < 2) return '';
+  const first = multiYear[0];
+  const last = multiYear[multiYear.length - 1];
+  const yearsSpan = multiYear.length;
+
+  const revenueTrend = multiYear.slice(1).map(y => y.revenue_growth_pct);
+  const allPositive = revenueTrend.every(g => g !== null && g > 0);
+  const allNegative = revenueTrend.every(g => g !== null && g < 0);
+
+  let trendWord = 'berfluktuasi';
+  if (allPositive) trendWord = 'konsisten naik';
+  else if (allNegative) trendWord = 'konsisten turun';
+
+  const totalRevenueGrowth = first.revenue && last.revenue
+    ? ((last.revenue / first.revenue - 1) * 100).toFixed(1) : null;
+  const totalNetIncomeGrowth = first.net_income_parent && last.net_income_parent
+    ? ((last.net_income_parent / first.net_income_parent - 1) * 100).toFixed(1) : null;
+
+  let text = `Data mencakup <strong>${yearsSpan} periode tahunan</strong>, dari ${first.period_label} hingga ${last.period_label}. `;
+  text += `Pendapatan ${trendWord} sepanjang periode ini`;
+  if (totalRevenueGrowth !== null) {
+    text += `, dengan total pertumbuhan kumulatif ${totalRevenueGrowth > 0 ? '+' : ''}${totalRevenueGrowth}% dari periode pertama ke terakhir`;
+  }
+  text += `. `;
+  if (totalNetIncomeGrowth !== null) {
+    text += `Laba bersih tumbuh ${totalNetIncomeGrowth > 0 ? '+' : ''}${totalNetIncomeGrowth}% dalam rentang yang sama.`;
+  }
+  return text;
+}
+
+function renderCharts(multiYear) {
+  const hasInterim = multiYear.some(y => y.is_interim);
+
+  if (typeof Chart === 'undefined') {
+    // Chart.js gagal dimuat (mis. CDN diblokir firewall/ad-blocker/offline).
+    // Jangan biarkan error ini merusak seluruh dashboard -- sembunyikan
+    // section grafik saja dan kasih tahu penggunanya kenapa, dengan
+    // sisa dashboard (angka, tabel, narasi) tetap tampil normal.
+    document.querySelectorAll('.chart-box canvas').forEach(canvas => {
+      const box = canvas.closest('.chart-box');
+      if (box) box.innerHTML = '<p style="color:#8A97A8;font-size:0.85rem;">Grafik gagal dimuat -- kemungkinan koneksi ke CDN Chart.js diblokir jaringan/firewall. Angka tetap tersedia di bagian lain dashboard.</p>';
+    });
+    return;
+  }
+
+  const labels = multiYear.map(y => {
+    const shortLabel = y.period_label.replace('31 December ', '').replace('31 Desember ', '');
+    return y.is_interim ? `${shortLabel}*` : shortLabel;
+  });
+
+  // labelFmt: formatter data label di atas bar/titik (label digambar di
+  // canvas, jadi otomatis ikut ke PDF). yTickFmt: formatter tick sumbu Y
+  // (mis. ringkas triliun/miliar agar sumbu tidak penuh 14 digit).
+  function makeChart(canvasId, datasets, chartType = 'bar', labelFmt = null, yTickFmt = null) {
+    const ctx = document.getElementById(canvasId);
+    if (!ctx) return;
+    if (charts[canvasId]) charts[canvasId].destroy();
+    charts[canvasId] = new Chart(ctx, {
+      type: chartType,
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        layout: { padding: { top: 18 } }, // ruang untuk data label di atas titik/bar tertinggi
+        plugins: {
+          legend: { display: datasets.length > 1, labels: { color: '#8A97A8', font: { family: 'IBM Plex Sans' } } },
+          datalabels: labelFmt ? {
+            display: 'auto', // label yang tabrakan otomatis disembunyikan
+            anchor: chartType === 'line' ? 'center' : 'end',
+            align: chartType === 'line' ? 'top' : 'end',
+            offset: chartType === 'line' ? 6 : 4,
+            color: '#C7D0DB',
+            font: { family: 'IBM Plex Mono', size: 9, weight: 500 },
+            formatter: labelFmt,
+          } : false,
+        },
+        scales: {
+          x: { ticks: { color: '#8A97A8' }, grid: { color: '#263241' } },
+          y: { ticks: { color: '#8A97A8', callback: yTickFmt }, grid: { color: '#263241' } },
+        },
+      },
+    });
+  }
+
+  makeChart('chart-revenue-income', [
+    { label: 'Pendapatan', data: multiYear.map(y => y.revenue), backgroundColor: '#D4A44C' },
+    { label: 'Laba Bersih', data: multiYear.map(y => y.net_income_parent), backgroundColor: '#4FAE8A' },
+  ], 'bar', fmtCompact, fmtCompact);
+
+  makeChart('chart-eps', [
+    { label: 'EPS', data: multiYear.map(y => y.eps), borderColor: '#4FAE8A', backgroundColor: 'rgba(79,174,138,0.15)', fill: true, tension: 0.3 },
+  ], 'line', v => (v === null || v === undefined) ? '' : fmtPerShare(v));
+
+  makeChart('chart-der', [
+    { label: 'Debt-to-Equity', data: multiYear.map(y => y.der), borderColor: '#D2694A', backgroundColor: 'rgba(210,105,74,0.15)', fill: true, tension: 0.3 },
+  ], 'line', v => (v === null || v === undefined) ? '' : fmtNum(v, 2));
+
+  makeChart('chart-margin', [
+    { label: 'Margin Laba Bersih (%)', data: multiYear.map(y => y.net_margin_pct), backgroundColor: '#D4A44C' },
+  ], 'bar', v => (v === null || v === undefined) ? '' : `${fmtNum(v, 1)}%`);
+}
+
+function renderDashboard(data) {
+  // Disimpan untuk tombol Unduh PDF (export client-side)
+  lastAnalysisData = data;
+  const r = data.ratios;
+  const b = data.benchmarks || {};
+  const context = data.analysis_context || {};
+  const dashboard = document.getElementById('dashboard');
+
+  const periodLabel = data.period_labels[data.period_labels.length - 1] || '';
+  const yearsCount = data.period_labels.length;
+  const narrative = buildTrendNarrative(data.multi_year, data.entity_name);
+
+  const bnote = (field) => b[field] ? b[field].note : null;
+  const currentSource = context.current_source_filename || 'File sumber tidak tersedia';
+  // Catatan konversi untuk emiten yang melapor dalam mata uang asing
+  // (mis. POWR ber-USD): nilai per-saham asli tampil dengan kurs Rupiah
+  // agar angka kecil semacam EPS 0.0048 tetap masuk akal di mata user.
+  const fxNote = (nativeVal, idrVal) => {
+    if (r.reporting_currency && r.reporting_currency !== 'IDR' && r.exchange_rate_applied) {
+      const native = fmtPerShare(nativeVal, 4);
+      if (native === null) return null;
+      const base = `${r.reporting_currency} ${native} · kurs ${fmtNum(r.exchange_rate_applied)}`;
+      return (idrVal !== null && idrVal !== undefined) ? `${base} → ≈ Rp${fmtNum(idrVal, 2)}` : base;
+    }
+    return null;
+  };
+  const priorSource = context.prior_source_filename || 'File sumber tidak tersedia';
+  const cashDividendFormula = r.dividends_paid !== null && r.operating_cash_flow !== null
+    ? `${fmtNum(Math.abs(r.dividends_paid))} dividen kas ÷ ${fmtNum(r.operating_cash_flow)} arus kas operasi`
+    : null;
+
+  dashboard.innerHTML = `
+    <div class="entity-header">
+      <div class="entity-header-main">
+        <div class="name">${data.entity_name || 'Entitas tidak terdeteksi'}</div>
+        <div class="period">Periode terakhir (tahunan): ${periodLabel}${yearsCount > 1 ? ` &nbsp;|&nbsp; ${yearsCount} periode data digabung` : ''}</div>
+      </div>
+      <button class="pdf-btn" id="btn-download-pdf" type="button" title="Simpan hasil analisis ini sebagai file PDF">\u2b07 Unduh PDF</button>
+    </div>
+
+    <details class="method-panel" open>
+      <summary>Cara membaca angka &amp; sumber data</summary>
+      <p>Kartu rasio utama memakai <strong>${context.current_period || 'periode tahunan terbaru'}</strong> dari <strong>${currentSource}</strong>; kartu pertumbuhan membandingkannya dengan <strong>${context.prior_period || 'periode tahunan sebelumnya'}</strong> dari <strong>${priorSource}</strong>.</p>
+      <p>Angka kartu <strong>bukan penjumlahan semua tahun</strong>. Laporan lintas tahun hanya digabung untuk tabel dan grafik tren, lalu periode yang sama dihapus agar tidak dobel. Periode interim tidak dipakai untuk rasio tahunan utama.</p>
+      ${data.database ? `<p>Database: ${data.database.cache_hits || 0} file dari cache · ${data.database.from_database || 0} periode lama dari database/spreadsheet · ${data.database.stored_now || 0} periode tersimpan sekarang.${data.database.spreadsheet_error ? ` <span style="color:#D2694A">Spreadsheet: ${data.database.spreadsheet_error}</span>` : ''} Unduh database via panel "Database spreadsheet" di atas untuk diimpor ke Google Sheets.</p>` : ''}
+    </details>
+
+    ${data.latest_interim ? `
+    <div class="interim-note">
+      Data interim terbaru tersedia: <strong>${data.latest_interim.period_label}</strong>${data.latest_interim.coverage_months ? ` (${data.latest_interim.coverage_months} bulan berjalan)` : ''} —
+      Pendapatan: ${data.latest_interim.revenue !== null ? fmtNum(data.latest_interim.revenue) : '—'},
+      Laba Bersih: ${data.latest_interim.net_income_parent !== null ? fmtNum(data.latest_interim.net_income_parent) : '—'},
+      EPS: ${data.latest_interim.eps !== null ? fmtPerShare(data.latest_interim.eps) : '—'}.
+      <br>Angka ini <strong>belum mencakup satu tahun penuh</strong>, jadi tidak dimasukkan ke perhitungan
+      pertumbuhan tahunan di atas — membandingkannya langsung ke data 31 Desember akan menyesatkan
+      (cakupan waktu berbeda, bukan penurunan/kenaikan bisnis yang sebenarnya).
+    </div>` : ''}
+
+    ${narrative ? `<div class="trend-narrative">${narrative}</div>` : ''}
+
+    ${yearsCount > 1 ? `
+    <div class="section">
+      <div class="section-title">Grafik Tren</div>
+      ${data.multi_year.some(y => y.is_interim) ? '<div class="interim-note" style="padding-top:0;padding-bottom:12px;">* periode interim/kuartalan (belum satu tahun penuh)</div>' : ''}
+      <div class="chart-grid">
+        <div class="chart-box">
+          <h4>Pendapatan vs Laba Bersih</h4>
+          <canvas id="chart-revenue-income"></canvas>
+        </div>
+        <div class="chart-box">
+          <h4>EPS per Tahun</h4>
+          <canvas id="chart-eps"></canvas>
+        </div>
+        <div class="chart-box">
+          <h4>Debt-to-Equity Ratio</h4>
+          <canvas id="chart-der"></canvas>
+        </div>
+        <div class="chart-box">
+          <h4>Margin Laba Bersih</h4>
+          <canvas id="chart-margin"></canvas>
+        </div>
+      </div>
+    </div>` : ''}
+
+    ${yearsCount > 2 ? `
+    <div class="section">
+      <div class="section-title">Tabel Tren Multi-Tahun</div>
+      <table class="trend-table">
+        <thead>
+          <tr>
+            <th>Periode</th>
+            <th>Pendapatan</th>
+            <th>Pertumbuhan</th>
+            <th>Laba Bersih</th>
+            <th>Margin</th>
+            <th>DER</th>
+            <th>EPS${r.reporting_currency && r.reporting_currency !== 'IDR' ? ` (${r.reporting_currency})` : ''}</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${data.multi_year.map(y => `
+            <tr class="${y.is_interim ? 'interim-row' : ''}">
+              <td>${y.period_label}${y.is_interim ? ' <span class="interim-tag">interim</span>' : ''}</td>
+              <td>${y.revenue !== null ? fmtNum(y.revenue) : '—'}</td>
+              <td class="${metricClass(y.revenue_growth_pct)}">${y.revenue_growth_pct !== null ? fmtPct(y.revenue_growth_pct) : (y.is_interim ? 'n/a' : '—')}</td>
+              <td>${y.net_income_parent !== null ? fmtNum(y.net_income_parent) : '—'}</td>
+              <td>${y.net_margin_pct !== null ? fmtNum(y.net_margin_pct, 1) + '%' : '—'}</td>
+              <td>${y.der !== null ? fmtNum(y.der, 2) + 'x' : '—'}</td>
+              <td>${y.eps !== null ? fmtPerShare(y.eps) : '—'}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>` : ''}
+
+    <div class="section">
+      <div class="section-title">Pertumbuhan &amp; Profitabilitas</div>
+      <div class="metric-row">
+        ${metricHTML('Pertumbuhan Pendapatan (YoY)', fmtPct(r.revenue_growth_pct), null, r.revenue_growth_pct_verdict, bnote('revenue_growth_pct'))}
+        ${metricHTML('Pertumbuhan Laba Bersih (YoY)', fmtPct(r.net_income_growth_pct), null, r.net_income_growth_pct_verdict, bnote('net_income_growth_pct'))}
+        ${metricHTML('Margin Laba Bersih', r.net_margin_pct !== null ? fmtNum(r.net_margin_pct, 2) + '%' : null,
+          r.net_margin_prior_pct !== null ? `Tahun lalu: ${fmtNum(r.net_margin_prior_pct, 2)}%` : null, r.net_margin_pct_verdict, bnote('net_margin_pct'))}
+        ${metricHTML('ROE', r.roe_pct !== null ? fmtNum(r.roe_pct, 2) + '%' : null, null, r.roe_pct_verdict, bnote('roe_pct'))}
+        ${metricHTML('ROA', r.roa_pct !== null ? fmtNum(r.roa_pct, 2) + '%' : null, null, r.roa_pct_verdict, bnote('roa_pct'))}
+        ${metricHTML('EPS', r.eps !== null ? fmtPerShare(r.eps) : null,
+          r.eps_growth_pct !== null ? `Pertumbuhan: ${fmtPct(r.eps_growth_pct)}` : (r.reporting_currency && r.reporting_currency !== 'IDR' ? `Dilaporkan dalam ${r.reporting_currency}` : null), null, fxNote(r.eps, r.eps_in_idr))}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Leverage &amp; Likuiditas</div>
+      <div class="metric-row">
+        ${metricHTML('Debt-to-Equity', r.der !== null ? fmtNum(r.der, 2) + 'x' : null,
+          r.der_prior !== null ? `Tahun lalu: ${fmtNum(r.der_prior, 2)}x` : null, r.der_verdict, bnote('der'))}
+        ${metricHTML('Total Liabilitas / Aset', r.debt_to_assets_pct !== null ? fmtNum(r.debt_to_assets_pct, 1) + '%' : null)}
+        ${metricHTML('Current Ratio', r.current_ratio !== null ? fmtNum(r.current_ratio, 2) : null,
+          r.current_ratio_prior !== null ? `Tahun lalu: ${fmtNum(r.current_ratio_prior, 2)}` : null, r.current_ratio_verdict, bnote('current_ratio'))}
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Arus Kas</div>
+      <div class="metric-row">
+        ${metricHTML('Arus Kas Operasi', r.operating_cash_flow !== null ? fmtNum(r.operating_cash_flow) : null,
+          r.ocf_growth_pct !== null ? `Pertumbuhan: ${fmtPct(r.ocf_growth_pct)}` : null)}
+        ${metricHTML('Free Cash Flow', r.free_cash_flow !== null ? fmtNum(r.free_cash_flow) : null,
+          r.free_cash_flow_prior !== null ? `Tahun lalu: ${fmtNum(r.free_cash_flow_prior)}` : null)}
+        ${metricHTML('Dividen Dibayarkan', r.dividends_paid !== null ? fmtNum(Math.abs(r.dividends_paid)) : null)}
+        ${metricHTML('Cash Dividend Payout', r.cash_dividend_payout_pct !== null ? fmtNum(r.cash_dividend_payout_pct, 1) + '%' : null,
+          cashDividendFormula ? `${context.current_period || 'Periode terbaru'} · ${cashDividendFormula}` : null,
+          r.cash_dividend_payout_pct_verdict, bnote('cash_dividend_payout_pct'))}
+      </div>
+    </div>
+
+    ${data.price ? `
+    <div class="section">
+      <div class="section-title">Valuasi &amp; Harga Saham</div>
+      <div class="metric-row">
+        ${metricHTML('Harga Terakhir', r.latest_price !== null ? fmtNum(r.latest_price) : null,
+          r.latest_price_date ? `Per ${r.latest_price_date}` : null)}
+        ${metricHTML('PER', r.per !== null ? fmtNum(r.per, 2) + 'x' : null,
+          r.per === null && r.eps !== null ? (r.currency_rate_missing ? 'Isi kurs ke Rupiah dulu' : 'Butuh harga saham') : null, r.per_verdict, bnote('per'))}
+        ${metricHTML('PBV', r.pbv !== null ? fmtNum(r.pbv, 2) + 'x' : null,
+          r.pbv === null ? (r.currency_rate_missing ? 'Isi kurs ke Rupiah dulu' : 'Isi jumlah saham beredar') : (r.bvps_used_parent_equity === false ? 'Estimasi kasar -- data ekuitas induk tidak terdeteksi' : null), r.pbv_verdict, bnote('pbv'))}
+        ${metricHTML('Dividend Yield', r.dividend_yield_pct !== null ? fmtNum(r.dividend_yield_pct, 2) + '%' : null,
+          r.dividend_yield_pct === null ? (r.currency_rate_missing ? 'Isi kurs ke Rupiah dulu' : 'Isi jumlah saham beredar') : null, r.dividend_yield_pct_verdict, bnote('dividend_yield_pct'))}
+        ${metricHTML('Volatilitas Tahunan', r.price_volatility_annualized_pct !== null ? fmtNum(r.price_volatility_annualized_pct, 1) + '%' : null)}
+        ${metricHTML('Max Drawdown', r.max_drawdown_pct !== null ? fmtNum(r.max_drawdown_pct, 1) + '%' : null)}
+      </div>
+    </div>` : ''}
+
+    ${(() => {
+      const allWarnings = Object.entries(data.parse_warnings_by_file || {})
+        .flatMap(([filename, warnings]) => warnings.map(w => `[${filename}] ${w}`));
+      if (allWarnings.length === 0) return '';
+      return `
+    <details class="warnings-panel">
+      <summary>${allWarnings.length} baris tidak terbaca otomatis -- cek manual</summary>
+      <ul>
+        ${allWarnings.map(w => `<li>${w}</li>`).join('')}
+      </ul>
+    </details>`;
+    })()}
+
+    <div class="disclaimer">
+      Angka di atas hasil ekstraksi otomatis dari laporan keuangan (PDF/Excel) dan bukan nasihat keuangan. Badge "Baik/Wajar/Perhatikan"
+      adalah patokan umum lintas industri, BUKAN standar resmi -- rasio yang wajar sangat tergantung sektor
+      (bank, telko, dan consumer goods punya struktur neraca yang berbeda jauh). Selalu bandingkan juga
+      dengan rata-rata sektornya sendiri dan verifikasi ke laporan keuangan asli sebelum mengambil keputusan investasi.
+    </div>
+  `;
+
+  dashboard.classList.add('visible');
+  // Tiap render baru pastikan user melihat view analisis (mis. user menekan
+  // Analisis lagi saat sedang membaca Legenda/Prediksi).
+  switchView('analisis');
+  try {
+    renderCharts(data.multi_year);
+  } catch (e) {
+    console.error('Gagal render grafik:', e);
+  }
+  dashboard.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============================================================
+// Export PDF hasil analisis (client-side via jsPDF + autotable)
+// ============================================================
+// Data diambil dari payload analisis terakhir (lastAnalysisData), BUKAN
+// dari DOM -- layout PDF stabil dan tidak ikut styling layar. Grafik
+// diambil dari canvas Chart.js yang sudah dirender (toDataURL), jadi
+// persis seperti yang tampil di dashboard. Semua diproses di browser;
+// tidak ada data keuangan yang dikirim ke server untuk export ini.
+let lastAnalysisData = null;
+
+async function exportAnalysisToPDF() {
+  const data = lastAnalysisData;
+  if (!data) return;
+  const btn = document.getElementById('btn-download-pdf');
+  if (btn) btn.disabled = true;
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+    // --- Isi kamus rasio di-fetch dari halaman /rasio (satu sumber
+    // kebenaran dengan tab kamus di aplikasi). Kalau gagal dimuat
+    // (offline dsb.), kamus dilewati -- tabel benchmark tetap tampil
+    // karena dibangun dari payload analisis, bukan dari /rasio. ---
+    const qtxt = (el, sel) => { const n = el.querySelector(sel); return n ? n.textContent.trim() : ''; };
+    let glossary = [];
+    try {
+      const res = await fetch('/rasio');
+      if (res.ok) {
+        const gdoc = new DOMParser().parseFromString(await res.text(), 'text/html');
+        glossary = Array.from(gdoc.querySelectorAll('.legend-item'))
+          .map(el => ({
+            name: qtxt(el, '.legend-item-name'),
+            formula: qtxt(el, '.legend-item-formula'),
+            source: qtxt(el, '.legend-item-source'),
+            meaning: qtxt(el, '.legend-item-meaning'),
+          }))
+          .filter(g => g.name);
+      }
+    } catch (e) { /* /rasio tidak tersedia: lanjut tanpa kamus */ }
+    const r = data.ratios || {};
+    const context = data.analysis_context || {};
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 40;
+    const GOLD = [212, 164, 76];   // aksen brand (var --gold)
+    const INK = [24, 32, 42];      // teks utama
+    const DIM = [110, 122, 138];   // teks sekunder
+
+    const isForeign = r.reporting_currency && r.reporting_currency !== 'IDR';
+    const num = (n, d = 0) => (n === null || n === undefined) ? null
+      : n.toLocaleString('id-ID', { minimumFractionDigits: d, maximumFractionDigits: d });
+    const pct = (n, d = 1) => (n === null || n === undefined) ? null : `${n > 0 ? '+' : ''}${num(n, d)}%`;
+    // Sama seperti fmtPerShare: angka < 1 pakai 4 desimal agar EPS tipis
+    // semacam 0.0048 tidak jatuh jadi "0.00" di PDF juga.
+    const perShare = (n, d = 2) => (n === null || n === undefined) ? null : num(n, Math.abs(n) < 1 ? Math.max(d, 4) : d);
+    const VERDICT = { good: 'Baik', ok: 'Wajar', watch: 'Perhatikan' };
+    const verdict = (k) => (k && VERDICT[k]) ? VERDICT[k] : '';
+    const wrapText = (d, text, x, yy, maxW, lh) => {
+      const lines = d.splitTextToSize(text, maxW);
+      d.text(lines, x, yy);
+      return yy + (lines.length - 1) * lh;
+    };
+
+    // --- Patokan benchmark: baseline yang dipakai dasbor menentukan
+    // penanda Baik/Wajar/Perhatikan. Diambil dari data.benchmarks yang
+    // dikirim backend (RATIO_BENCHMARKS) supaya SELALU sinkron dengan
+    // badge di dashboard. Simbol >=/<= tidak dipakai karena tidak ada
+    // di encoding font standar jsPDF -- pakai kata min/maks. ---
+    const BENCH = data.benchmarks || {};
+    const benchVal = (v) => (v === null || v === undefined) ? '' : v.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+    const benchTxt = (field) => {
+      const bm = BENCH[field];
+      if (!bm) return '';
+      const unit = field.endsWith('_pct') ? '%' : 'x';
+      const g = `${benchVal(bm.good)}${unit}`;
+      const o = `${benchVal(bm.ok)}${unit}`;
+      return bm.lower_is_better
+        ? `Baik: maks ${g} · Wajar: maks ${o}`
+        : `Baik: min ${g} · Wajar: min ${o}`;
+    };
+    const BENCH_META = [
+      ['revenue_growth_pct', 'Pertumbuhan Pendapatan (YoY)'],
+      ['net_income_growth_pct', 'Pertumbuhan Laba Bersih (YoY)'],
+      ['net_margin_pct', 'Margin Laba Bersih'],
+      ['roe_pct', 'ROE'],
+      ['roa_pct', 'ROA'],
+      ['der', 'Debt-to-Equity'],
+      ['current_ratio', 'Current Ratio'],
+      ['cash_dividend_payout_pct', 'Cash Dividend Payout'],
+      ['per', 'PER'],
+      ['pbv', 'PBV'],
+      ['dividend_yield_pct', 'Dividend Yield'],
+    ];
+    const benchRows = BENCH_META
+      .filter(([field]) => BENCH[field])
+      .map(([field, label]) => {
+        const bm = BENCH[field];
+        const unit = field.endsWith('_pct') ? '%' : 'x';
+        const g = benchVal(bm.good);
+        const o = benchVal(bm.ok);
+        const baik = bm.lower_is_better ? `maks ${g}${unit}` : `min ${g}${unit}`;
+        const wajar = bm.lower_is_better ? `${g}${unit} - ${o}${unit}` : `${o}${unit} - ${g}${unit}`;
+        const watch = bm.lower_is_better ? `di atas ${o}${unit}` : `di bawah ${o}${unit}`;
+        return [label, baik, wajar, watch, bm.note || ''];
+      });
+
+    // --- Header halaman 1 ---
+    doc.setFont('times', 'bold');
+    doc.setFontSize(20);
+    doc.setTextColor(...INK);
+    doc.text(data.entity_name || 'Entitas tidak terdeteksi', margin, 56);
+    const periodLabel = (data.period_labels || []).slice(-1)[0] || '';
+    const yearsCount = (data.period_labels || []).length;
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...DIM);
+    doc.text(`Periode terakhir (tahunan): ${periodLabel}${yearsCount > 1 ? ` | ${yearsCount} periode digabung` : ''}`, margin, 74);
+    doc.text(`Dibuat: ${new Date().toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' })}`, margin, 88);
+    doc.setDrawColor(...GOLD);
+    doc.setLineWidth(1.2);
+    doc.line(margin, 98, pageW - margin, 98);
+
+    let y = 114;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...DIM);
+    y = wrapText(doc,
+      `Sumber: ${context.current_source_filename || '-'} (${context.current_period || periodLabel}); perbandingan: ${context.prior_source_filename || '-'} (${context.prior_period || '-'})`,
+      margin, y, pageW - margin * 2, 11) + 4;
+
+    const narrative = buildTrendNarrative(data.multi_year || [], data.entity_name);
+    if (narrative) {
+      doc.setFontSize(9.5);
+      doc.setTextColor(...INK);
+      y = wrapText(doc, narrative.replace(/<[^>]+>/g, ''), margin, y + 12, pageW - margin * 2, 12) + 4;
+    }
+
+    if (data.latest_interim) {
+      const li = data.latest_interim;
+      doc.setFontSize(8.5);
+      doc.setTextColor(...DIM);
+      y = wrapText(doc,
+        `Interim terbaru ${li.period_label}: Pendapatan ${li.revenue !== null ? num(li.revenue) : '-'} | Laba Bersih ${li.net_income_parent !== null ? num(li.net_income_parent) : '-'} | EPS ${li.eps !== null ? perShare(li.eps) : '-'} (belum satu tahun penuh, tidak dipakai di rasio tahunan).`,
+        margin, y + 10, pageW - margin * 2, 11) + 2;
+    }
+
+    // --- Tabel tren multi-tahun ---
+    const my = data.multi_year || [];
+    if (my.length > 1) {
+      doc.autoTable({
+        startY: y + 16,
+        head: [['Periode', 'Pendapatan', 'Pertumbuhan', 'Laba Bersih', 'Margin', 'DER', `EPS${isForeign ? ` (${r.reporting_currency})` : ''}`]],
+        body: my.map(yy => [
+          yy.period_label + (yy.is_interim ? ' (interim)' : ''),
+          yy.revenue !== null ? num(yy.revenue) : '-',
+          yy.revenue_growth_pct !== null ? pct(yy.revenue_growth_pct) : (yy.is_interim ? 'n/a' : '-'),
+          yy.net_income_parent !== null ? num(yy.net_income_parent) : '-',
+          yy.net_margin_pct !== null ? `${num(yy.net_margin_pct, 1)}%` : '-',
+          yy.der !== null ? `${num(yy.der, 2)}x` : '-',
+          yy.eps !== null ? perShare(yy.eps) : '-',
+        ]),
+        theme: 'grid',
+        styles: { font: 'helvetica', fontSize: 8, cellPadding: 4, textColor: INK, lineColor: [38, 50, 65], lineWidth: 0.5 },
+        headStyles: { fillColor: [15, 23, 32], textColor: GOLD, fontStyle: 'bold' },
+        alternateRowStyles: { fillColor: [247, 246, 242] },
+        margin: { left: margin, right: margin },
+      });
+      y = doc.lastAutoTable.finalY;
+    }
+
+    // --- Kartu rasio jadi tabel per kategori (label | nilai | catatan) ---
+    const fxNote = (nativeVal, idrVal) => {
+      if (isForeign && r.exchange_rate_applied) {
+        const native = perShare(nativeVal, 4);
+        if (native === null) return '';
+        const base = `${r.reporting_currency} ${native} (kurs ${num(r.exchange_rate_applied)})`;
+        return (idrVal !== null && idrVal !== undefined) ? `${base} ~ Rp${num(idrVal, 2)}` : base;
+      }
+      return '';
+    };
+    const sections = [
+      { title: 'Pertumbuhan & Profitabilitas', rows: [
+        ['Pertumbuhan Pendapatan (YoY)', pct(r.revenue_growth_pct), verdict(r.revenue_growth_pct_verdict), 'revenue_growth_pct'],
+        ['Pertumbuhan Laba Bersih (YoY)', pct(r.net_income_growth_pct), verdict(r.net_income_growth_pct_verdict), 'net_income_growth_pct'],
+        ['Margin Laba Bersih', r.net_margin_pct !== null ? `${num(r.net_margin_pct, 2)}%` : null, verdict(r.net_margin_pct_verdict), 'net_margin_pct'],
+        ['ROE', r.roe_pct !== null ? `${num(r.roe_pct, 2)}%` : null, verdict(r.roe_pct_verdict), 'roe_pct'],
+        ['ROA', r.roa_pct !== null ? `${num(r.roa_pct, 2)}%` : null, verdict(r.roa_pct_verdict), 'roa_pct'],
+        ['EPS', r.eps !== null ? perShare(r.eps) : null, fxNote(r.eps, r.eps_in_idr) || (isForeign ? `Dilaporkan dalam ${r.reporting_currency}` : '')],
+      ]},
+      { title: 'Leverage & Likuiditas', rows: [
+        ['Debt-to-Equity', r.der !== null ? `${num(r.der, 2)}x` : null, verdict(r.der_verdict), 'der'],
+        ['Total Liabilitas / Aset', r.debt_to_assets_pct !== null ? `${num(r.debt_to_assets_pct, 1)}%` : null, ''],
+        ['Current Ratio', r.current_ratio !== null ? num(r.current_ratio, 2) : null, verdict(r.current_ratio_verdict), 'current_ratio'],
+      ]},
+      { title: 'Arus Kas', rows: [
+        ['Arus Kas Operasi', r.operating_cash_flow !== null ? num(r.operating_cash_flow) : null, ''],
+        ['Free Cash Flow', r.free_cash_flow !== null ? num(r.free_cash_flow) : null, ''],
+        ['Dividen Dibayarkan', r.dividends_paid !== null ? num(Math.abs(r.dividends_paid)) : null, ''],
+        ['Cash Dividend Payout', r.cash_dividend_payout_pct !== null ? `${num(r.cash_dividend_payout_pct, 1)}%` : null, verdict(r.cash_dividend_payout_pct_verdict), 'cash_dividend_payout_pct'],
+      ]},
+    ];
+    if (data.price) sections.push({ title: 'Valuasi & Harga Saham', rows: [
+      ['Harga Terakhir', r.latest_price !== null ? num(r.latest_price) : null, r.latest_price_date ? `per ${r.latest_price_date}` : ''],
+      ['PER', r.per !== null ? `${num(r.per, 2)}x` : null, verdict(r.per_verdict), 'per'],
+      ['PBV', r.pbv !== null ? `${num(r.pbv, 2)}x` : null, verdict(r.pbv_verdict), 'pbv'],
+      ['Dividend Yield', r.dividend_yield_pct !== null ? `${num(r.dividend_yield_pct, 2)}%` : null, verdict(r.dividend_yield_pct_verdict), 'dividend_yield_pct'],
+      ['Volatilitas Tahunan', r.price_volatility_annualized_pct !== null ? `${num(r.price_volatility_annualized_pct, 1)}%` : null, ''],
+      ['Max Drawdown', r.max_drawdown_pct !== null ? `${num(r.max_drawdown_pct, 1)}%` : null, ''],
+    ]});
+
+    for (const sec of sections) {
+      doc.autoTable({
+        startY: y + 22,
+        head: [[sec.title, 'Nilai', 'Patokan', 'Catatan']],
+        body: sec.rows.map(([label, value, note, field]) => [
+          label,
+          value === null || value === undefined ? 'Tidak tersedia' : value,
+          field ? benchTxt(field) : '',
+          note || '',
+        ]),
+        theme: 'grid',
+        styles: { font: 'helvetica', fontSize: 8.5, cellPadding: 4, textColor: INK, lineColor: [38, 50, 65], lineWidth: 0.5 },
+        headStyles: { fillColor: [15, 23, 32], textColor: GOLD, fontStyle: 'bold' },
+        columnStyles: { 1: { halign: 'right', fontStyle: 'bold', cellWidth: 95 }, 2: { cellWidth: 118, fontSize: 7.5 }, 3: { cellWidth: 140, textColor: DIM, fontSize: 7.5 } },
+        margin: { left: margin, right: margin },
+      });
+      y = doc.lastAutoTable.finalY;
+    }
+
+    // --- Warning baris gagal parse: ditaruh di dekat angka (sebelum
+    // grafik) supaya konteksnya tidak hilang -- dulu ditaruh SETELAH
+    // blok grafik dengan koordinat y sisa halaman 1, yang bisa saja
+    // menimpa grafik di halaman grafik. ---
+    const allWarnings = Object.entries(data.parse_warnings_by_file || {})
+      .flatMap(([filename, warnings]) => warnings.map(w => `[${filename}] ${w}`));
+    if (allWarnings.length) {
+      doc.autoTable({
+        startY: y + 22,
+        head: [[`Peringatan parse -- ${allWarnings.length} baris tidak terbaca otomatis, cek manual`]],
+        body: allWarnings.map(w => [w]),
+        theme: 'grid',
+        styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 3.5, textColor: INK, lineColor: [210, 105, 74], lineWidth: 0.5 },
+        headStyles: { fillColor: [210, 105, 74], textColor: [255, 255, 255] },
+        margin: { left: margin, right: margin },
+      });
+      y = doc.lastAutoTable.finalY;
+    }
+
+    // --- Grafik: diambil dari canvas Chart.js yang sudah dirender ---
+    const chartTitles = {
+      'chart-revenue-income': 'Pendapatan vs Laba Bersih',
+      'chart-eps': 'EPS per Tahun',
+      'chart-der': 'Debt-to-Equity Ratio',
+      'chart-margin': 'Margin Laba Bersih',
+    };
+    const chartIds = Object.keys(chartTitles).filter(id => {
+      const c = document.getElementById(id);
+      return c && c.width > 0; // hanya yang benar-benar terender
+    });
+    if (chartIds.length) {
+      doc.addPage();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(...INK);
+      doc.text('Grafik Tren', margin, 56);
+      const chartW = (pageW - margin * 2 - 16) / 2;
+      const chartH = chartW * 0.62;
+      let cy = 74;
+      chartIds.forEach((id, i) => {
+        const col = i % 2;
+        if (col === 0 && i > 0) cy += chartH + 44;
+        const x = margin + col * (chartW + 16);
+        try {
+          doc.addImage(document.getElementById(id).toDataURL('image/png'), 'PNG', x, cy, chartW, chartH);
+        } catch (e) { /* canvas tainted dsb -- lewati grafik ini saja */ }
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...DIM);
+        doc.text(chartTitles[id], x, cy + chartH + 12);
+      });
+    }
+
+    // --- Kamus Rasio & Benchmark: baseline angka untuk SETIAP rasio
+    // yang muncul + penjelasan lengkapnya. Teks kamus dari halaman
+    // /rasio (sama dengan tab kamus), baseline dari payload. ---
+    if (benchRows.length || glossary.length) {
+      doc.addPage();
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(13);
+      doc.setTextColor(...INK);
+      doc.text('Kamus Rasio & Benchmark', margin, 56);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...DIM);
+      doc.text(doc.splitTextToSize(
+        'Patokan di bawah adalah baseline yang dipakai dasbor menentukan penanda Baik / Wajar / Perhatikan -- heuristik umum lintas industri, bukan standar resmi (rasio yang wajar sangat tergantung sektor).',
+        pageW - margin * 2), margin, 70);
+
+      if (benchRows.length) {
+        doc.autoTable({
+          startY: 92,
+          head: [['Rasio', 'Baik', 'Wajar', 'Perhatikan', 'Catatan benchmark']],
+          body: benchRows,
+          theme: 'grid',
+          styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 3.5, textColor: INK, lineColor: [38, 50, 65], lineWidth: 0.5 },
+          headStyles: { fillColor: [15, 23, 32], textColor: GOLD, fontStyle: 'bold' },
+          columnStyles: {
+            1: { halign: 'center', cellWidth: 56 },
+            2: { halign: 'center', cellWidth: 80 },
+            3: { halign: 'center', cellWidth: 72 },
+            4: { textColor: DIM, fontSize: 7 },
+          },
+          margin: { left: margin, right: margin },
+        });
+        y = doc.lastAutoTable.finalY;
+      } else {
+        y = 100;
+      }
+
+      if (glossary.length) {
+        doc.autoTable({
+          startY: y + 18,
+          head: [['Rasio', 'Rumus', 'Baris lapkeu sumber', 'Cara membaca']],
+          body: glossary.map(g => [g.name, g.formula, g.source, g.meaning]),
+          theme: 'grid',
+          styles: { font: 'helvetica', fontSize: 7.5, cellPadding: 3.5, textColor: INK, lineColor: [38, 50, 65], lineWidth: 0.5 },
+          headStyles: { fillColor: [15, 23, 32], textColor: GOLD, fontStyle: 'bold' },
+          columnStyles: {
+            0: { fontStyle: 'bold', cellWidth: 100 },
+            1: { cellWidth: 125, textColor: [120, 96, 40] },
+            2: { cellWidth: 125, textColor: DIM, fontSize: 7 },
+          },
+          margin: { left: margin, right: margin },
+        });
+        y = doc.lastAutoTable.finalY;
+      }
+    }
+
+    // --- Disclaimer (halaman terakhir) ---
+    doc.addPage();
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...DIM);
+    doc.text(doc.splitTextToSize(
+      'Angka di laporan ini hasil ekstraksi otomatis dari laporan keuangan (PDF/Excel) dan bukan nasihat keuangan. Penanda "Baik/Wajar/Perhatikan" adalah patokan umum lintas industri, BUKAN standar resmi -- rasio yang wajar sangat tergantung sektor (bank, telko, dan consumer goods punya struktur neraca yang berbeda jauh). Selalu bandingkan juga dengan rata-rata sektornya sendiri dan verifikasi ke laporan keuangan asli sebelum mengambil keputusan investasi.',
+      pageW - margin * 2), margin, 56);
+
+    // Footer nomor halaman di semua halaman
+    const pageCount = doc.getNumberOfPages();
+    const pageH = doc.internal.pageSize.getHeight();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...DIM);
+      doc.text(`Analisis Lapkeu IDX -- halaman ${i}/${pageCount}`, pageW / 2, pageH - 20, { align: 'center' });
+    }
+
+    const safeName = (data.entity_name || 'lapkeu').replace(/[^\w\s-]/g, '').trim().replace(/\s+/g, '_');
+    const safePeriod = periodLabel.replace(/[^\w-]/g, '_');
+    doc.save(`Analisis_${safeName}${safePeriod ? `_${safePeriod}` : ''}.pdf`);
+  } catch (err) {
+    console.error('Gagal membuat PDF:', err);
+    alert('Gagal membuat PDF: ' + (err.message || err));
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+// Delegasi klik: tombol ada di dalam dashboard yang dirender ulang tiap
+// analisis, jadi listener-nya dipasang sekali di document (tidak perlu
+// re-bind setiap render).
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#btn-download-pdf')) exportAnalysisToPDF();
+});
+
+// --- Navigasi sidebar 3 view: Analisis | Legenda | Prediksi ---
+// Pindah view hanya show/hide <section>: file upload, input, dan instance
+// Chart.js tidak pernah disentuh, jadi hasil analisis & prediksi tetap utuh
+// walau bolak-balik menu. Di mobile, drawer menutup otomatis tiap pindah.
+let glossaryLoaded = false;
+let benchmarksLoaded = false;
+
+function switchView(name) {
+  ['analisis', 'legenda', 'prediksi'].forEach(v => {
+    document.getElementById(`view-${v}`).classList.toggle('active', v === name);
+    document.getElementById(`nav-${v}`).classList.toggle('active', v === name);
+  });
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('visible');
+  if (name === 'legenda') {
+    if (!glossaryLoaded) loadGlossary();
+    if (!benchmarksLoaded) loadBenchmarks();
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('nav-analisis').addEventListener('click', () => switchView('analisis'));
+document.getElementById('nav-legenda').addEventListener('click', () => switchView('legenda'));
+document.getElementById('nav-prediksi').addEventListener('click', () => switchView('prediksi'));
+document.getElementById('btn-hamburger').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('sidebar-backdrop').classList.toggle('visible');
+});
+document.getElementById('sidebar-backdrop').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebar-backdrop').classList.remove('visible');
+});
+
+function loadGlossary() {
+  // Konten kamus diambil dari /rasio (satu sumber kebenaran, tidak
+  // diduplikasi di dua file) dan ditampilkan di view Legenda.
+  fetch('/rasio')
+    .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.text(); })
+    .then(html => {
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const wrap = doc.querySelector('.wrap');
+      if (!wrap) throw new Error('Struktur halaman tidak dikenali');
+      const backLink = wrap.querySelector('.back-link');
+      if (backLink) backLink.remove(); // tautan "kembali" tidak relevan di dalam view
+      document.getElementById('glossary-content').innerHTML = wrap.innerHTML;
+      glossaryLoaded = true;
+    })
+    .catch(() => {
+      document.getElementById('glossary-content').innerHTML =
+        '<p class="glossary-loading">Gagal memuat kamus rasio -- buka langsung di <a href="/rasio" target="_blank" rel="noopener noreferrer">halaman terpisah</a>.</p>';
+    });
+}
+
+function loadBenchmarks() {
+  // Tabel patokan Baik/Wajar/Perhatikan dari backend agar selalu sinkron
+  // dengan badge di dashboard (fallback ke data analisis terakhir).
+  const render = (bench) => {
+    const order = [
+      ['revenue_growth_pct', 'Pertumbuhan Pendapatan (YoY)', '%'],
+      ['net_income_growth_pct', 'Pertumbuhan Laba Bersih (YoY)', '%'],
+      ['net_margin_pct', 'Margin Laba Bersih', '%'],
+      ['roe_pct', 'ROE', '%'],
+      ['roa_pct', 'ROA', '%'],
+      ['der', 'Debt-to-Equity', 'x'],
+      ['current_ratio', 'Current Ratio', 'x'],
+      ['cash_dividend_payout_pct', 'Cash Dividend Payout', '%'],
+      ['per', 'PER', 'x'],
+      ['pbv', 'PBV', 'x'],
+      ['dividend_yield_pct', 'Dividend Yield', '%'],
+    ];
+    const badge = (txt) => txt;
+    document.getElementById('benchmark-body').innerHTML = order
+      .filter(([field]) => bench[field])
+      .map(([field, label, unit]) => {
+        const b = bench[field];
+        const f = (v) => v.toLocaleString('id-ID', { maximumFractionDigits: 2 });
+        const lower = !!b.lower_is_better;
+        const baik = lower ? `maks ${f(b.good)}${unit}` : `min ${f(b.good)}${unit}`;
+        const wajar = lower ? `${f(b.good)}${unit} – ${f(b.ok)}${unit}` : `${f(b.ok)}${unit} – ${f(b.good)}${unit}`;
+        const watch = lower ? `di atas ${f(b.ok)}${unit}` : `di bawah ${f(b.ok)}${unit}`;
+        return `<tr><td><strong>${label}</strong></td><td>${badge(baik)}</td><td>${wajar}</td><td>${watch}</td><td class="dim">${b.note || ''}</td></tr>`;
+      }).join('');
+    benchmarksLoaded = true;
+  };
+  fetch(`${API_BASE}/api/benchmarks`)
+    .then(res => { if (!res.ok) throw new Error(`HTTP ${res.status}`); return res.json(); })
+    .then(render)
+    .catch(() => {
+      // Offline dari API? Pakai benchmark dari hasil analisis terakhir.
+      if (lastAnalysisData && lastAnalysisData.benchmarks) render(lastAnalysisData.benchmarks);
+      else document.getElementById('benchmark-body').innerHTML =
+        '<tr><td colspan="5" class="dim">Gagal memuat patokan -- lakukan satu kali Analisis dulu.</td></tr>';
+    });
+}
+
+// --- Database spreadsheet: unduh (DB -> sheet) & impor (sheet -> DB) ---
+// Tulis langsung ke Google Sheet user butuh OAuth, jadi arah tulisnya lewat
+// file CSV/XLSX (File > Import di Google Sheets). Link sheet dibaca tanpa
+// auth selama di-share "Anyone with the link (Viewer)".
+document.getElementById('btn-db-export-csv').addEventListener('click', () => {
+  window.open(`${API_BASE}/api/database/export?format=csv`, '_blank');
+});
+document.getElementById('btn-db-export-xlsx').addEventListener('click', () => {
+  window.open(`${API_BASE}/api/database/export?format=xlsx`, '_blank');
+});
+document.getElementById('btn-db-import').addEventListener('click', async () => {
+  const dbStatus = document.getElementById('db-status');
+  const link = document.getElementById('spreadsheet-url').value.trim();
+  if (!link) {
+    dbStatus.className = 'status-line error';
+    dbStatus.textContent = 'Isi link spreadsheet dulu sebelum memuat.';
+    return;
+  }
+  dbStatus.className = 'status-line';
+  dbStatus.textContent = 'Mengambil spreadsheet...';
+  try {
+    const res = await fetch(`${API_BASE}/api/database/import-spreadsheet`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spreadsheet_url: link }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Server error (${res.status})`);
+    }
+    const data = await res.json();
+    dbStatus.className = 'status-line';
+    dbStatus.textContent = `Berhasil: ${data.imported_periods} periode dibaca, ${data.stored_now} tersimpan ke database lokal. Berikutnya cukup upload laporan terbaru saja.`;
+  } catch (e) {
+    dbStatus.className = 'status-line error';
+    dbStatus.textContent = `Gagal: ${e.message || e}`;
+  }
+});
+
+// ============================================================
+// Prediksi saham: 4 model ML sederhana dari CSV harga historis
+// ============================================================
+// File default = CSV yang sudah diupload di menu Analisis (state.csvFile
+// terbawa karena satu halaman). User boleh menimpa khusus prediksi lewat
+// dropzone di bawah tanpa mengganggu file analisis.
+const predState = { file: null };
+
+setupDropzone('dz-prediksi', 'input-prediksi', 'dz-prediksi-hint', 'prediksi-file-list', false,
+  () => predState.file ? [predState.file] : [], (f) => { predState.file = f[0] || null; });
+
+const PRED_COLORS = {
+  linear: '#D4A44C',
+  quadratic: '#B48BE0',
+  sma: '#4FAE8A',
+  exp_smooth: '#D2694A',
+};
+
+document.getElementById('btn-predict').addEventListener('click', async () => {
+  const statusEl = document.getElementById('pred-status');
+  const btn = document.getElementById('btn-predict');
+  const csvFile = predState.file || state.csvFile;
+  if (!csvFile) {
+    statusEl.className = 'status-line error';
+    statusEl.textContent = 'Upload dulu CSV harga saham di menu Analisis (atau di kotak di atas). Prediksi butuh minimal 30 baris data.';
+    return;
+  }
+  const horizon = parseInt(document.getElementById('pred-horizon').value, 10) || 30;
+  statusEl.className = 'status-line';
+  statusEl.textContent = 'Melatih 4 model & mengevaluasi holdout...';
+  btn.disabled = true;
+
+  const formData = new FormData();
+  formData.append('price_csv', csvFile);
+  try {
+    const res = await fetch(`${API_BASE}/api/predict?horizon_days=${horizon}`, { method: 'POST', body: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Server error (${res.status})`);
+    }
+    const data = await res.json();
+    renderPrediksi(data);
+    statusEl.textContent = '';
+  } catch (e) {
+    statusEl.className = 'status-line error';
+    statusEl.textContent = `Gagal: ${e.message || e}`;
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+function renderPrediksi(data) {
+  const box = document.getElementById('prediksi-result');
+  box.style.display = '';
+  const checked = Array.from(document.querySelectorAll('#pred-models input:checked')).map(el => el.value);
+  const models = (checked.length ? checked : Object.keys(data.forecasts));
+  const hist = data.history;
+
+  document.getElementById('prediksi-chart-title').textContent =
+    `Harga penutupan + forecast ${data.horizon_days} hari bursa (per ${hist.last_date}: Rp${fmtNum(hist.last_close)})`;
+
+  const histLabels = hist.dates;
+  const allLabels = histLabels.concat(data.future_dates);
+  // Histori digambar sampai titik terakhir, forecast mulai dari titik
+  // terakhir (disambung) supaya tidak ada garis putus di tengah.
+  const padHist = (arr) => arr.concat(Array(data.future_dates.length).fill(null));
+  const padForecast = (arr) => Array(histLabels.length - 1).fill(null).concat([hist.closes[hist.closes.length - 1]], arr);
+  const datasets = [{
+    label: 'Aktual (close)',
+    data: padHist(hist.closes),
+    borderColor: '#E8ECF1',
+    backgroundColor: 'rgba(232,236,241,0.08)',
+    borderWidth: 1.5,
+    pointRadius: 0,
+    fill: false,
+    tension: 0.15,
+  }];
+  models.forEach(m => {
+    if (!data.forecasts[m]) return;
+    datasets.push({
+      label: data.models[m] ? data.models[m].label : m,
+      data: padForecast(data.forecasts[m]),
+      borderColor: PRED_COLORS[m] || '#8A97A8',
+      borderDash: [6, 4],
+      borderWidth: 1.5,
+      pointRadius: 0,
+      fill: false,
+      tension: 0.15,
+    });
+  });
+
+  if (typeof Chart === 'undefined') {
+    document.getElementById('prediksi-chart-title').textContent +=
+      ' -- grafik gagal dimuat (CDN Chart.js diblokir), lihat tabel di bawah.';
+  } else {
+    const ctx = document.getElementById('chart-prediksi');
+    if (charts['chart-prediksi']) charts['chart-prediksi'].destroy();
+    charts['chart-prediksi'] = new Chart(ctx, {
+      type: 'line',
+      data: { labels: allLabels, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: true, labels: { color: '#8A97A8', font: { family: 'IBM Plex Sans' }, boxWidth: 18 } },
+          datalabels: false, // forecast punya banyak titik -- label angka dimatikan khusus grafik ini
+        },
+        scales: {
+          x: { ticks: { color: '#8A97A8', maxTicksLimit: 8 }, grid: { color: '#263241' } },
+          y: { ticks: { color: '#8A97A8', callback: fmtCompact }, grid: { color: '#263241' } },
+        },
+      },
+    });
+  }
+
+  const fmtErr = (v) => (v === null || v === undefined) ? '—' : fmtNum(v);
+  const modelName = (m) => {
+    const star = m === data.best_model ? ' ★' : '';
+    return `${data.models[m] ? data.models[m].label : m}${star}`;
+  };
+  document.getElementById('prediksi-metrics-body').innerHTML = Object.keys(data.forecasts).map(m => {
+    const met = data.metrics[m];
+    const sum = data.forecast_summary[m];
+    return `<tr>
+      <td><strong>${modelName(m)}</strong><br><span class="dim" style="font-size:0.75rem">${data.models[m] ? data.models[m].desc : ''}</span></td>
+      <td>${fmtErr(met.rmse)}</td>
+      <td>${fmtErr(met.mae)}</td>
+      <td>${met.mape !== null && met.mape !== undefined ? fmtNum(met.mape, 2) + '%' : '—'}</td>
+      <td>${fmtNum(sum.last_forecast)}</td>
+      <td class="${metricClass(sum.change_pct_to_horizon)}">${sum.change_pct_to_horizon !== null ? fmtPct(sum.change_pct_to_horizon) : '—'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('prediksi-holdout-note').innerHTML =
+    `★ = error holdout terkecil (${data.holdout_days} hari terakhir disisihkan sebagai ujian). ` +
+    `Model terbaik di holdout <strong>belum tentu</strong> benar ke depan -- ini hanya baseline statistik sederhana.`;
+  const bestLabel = data.models[data.best_model] ? data.models[data.best_model].label : data.best_model;
+  const bestChg = data.forecast_summary[data.best_model].change_pct_to_horizon;
+  document.getElementById('prediksi-narrative').innerHTML =
+    `Dari ${hist.total_points} titik historis (ditampilkan ${hist.shown_points} terakhir), ` +
+    `model dengan error holdout terkecil adalah <strong>${bestLabel}</strong> ` +
+    `(RMSE ${fmtNum(data.metrics[data.best_model].rmse)}), memproyeksikan ` +
+    `<strong>${bestChg !== null ? fmtPct(bestChg) : '—'}</strong> dalam ${data.horizon_days} hari bursa ke depan. ` +
+    `Anggap ini skenario mekanis, bukan ekspektasi yang dijanjikan pasar.`;
+  document.getElementById('prediksi-result').scrollIntoView({ behavior: 'smooth' });
+}
+</script>
+
+</body>
+</html>

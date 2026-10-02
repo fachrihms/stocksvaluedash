@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.env
+
+# Test & cache
+.pytest_cache/
+.mypy_cache/
+
+# Database lokal & file sementara (jangan di-push)
+data/*.db
+data/*.sqlite*
+tmp/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

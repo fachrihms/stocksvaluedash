@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kamus Rasio — Dasbor Valuasi Saham</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0F1720;
+    --bg-raised: #151F2B;
+    --line: #263241;
+    --text: #E8ECF1;
+    --text-dim: #8A97A8;
+    --gold: #D4A44C;
+    --serif: 'Source Serif 4', Georgia, serif;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  .back-link {
+    display: inline-block;
+    margin-bottom: 24px;
+    color: var(--gold);
+    text-decoration: none;
+    font-size: 0.88rem;
+  }
+
+  .back-link:hover { text-decoration: underline; }
+
+  header {
+    margin-bottom: 36px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 28px;
+  }
+
+  header h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 2.2rem;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 0.95rem;
+    margin: 0;
+    max-width: 72ch;
+  }
+
+  .legend-group {
+    margin-bottom: 36px;
+  }
+
+  .legend-group:last-child { margin-bottom: 0; }
+
+  .legend-group-title {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .legend-item {
+    padding: 16px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .legend-item:last-child { border-bottom: none; }
+
+  .legend-item-name {
+    font-family: var(--serif);
+    font-size: 1.08rem;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .legend-item-formula {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--gold);
+    background: #1A2530;
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+  }
+
+  .legend-item-source {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .legend-item-source::before {
+    content: "Baris lapkeu: ";
+    opacity: 0.7;
+  }
+
+  .legend-item-meaning {
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    max-width: 75ch;
+  }
+
+  .page-note {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    font-size: 0.82rem;
+    color: var(--text-dim);
+    max-width: 72ch;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="back-link" href="/">← Kembali ke Dasbor</a>
+
+  <header>
+    <h1>Kamus Rasio</h1>
+    <p>Penjelasan setiap angka di dasbor: rumusnya, baris laporan keuangan tempat angkanya diambil, dan cara membacanya. Halaman ini sengaja dipisah dari dasbor agar angka dan grafik tidak bercampur dengan materi penjelasan.</p>
+  </header>
+
+  <div class="legend-group">
+    <div class="legend-group-title">Pertumbuhan &amp; Profitabilitas</div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Pertumbuhan Pendapatan (YoY)</div>
+      <div class="legend-item-formula">(Pendapatan tahun ini ÷ Pendapatan tahun lalu − 1) × 100%</div>
+      <div class="legend-item-source">"Penjualan dan pendapatan usaha" di Laporan Laba Rugi, tahun ini vs tahun sebelumnya.</div>
+      <div class="legend-item-meaning">Seberapa cepat penjualan perusahaan tumbuh dibanding tahun lalu. Angka positif besar biasanya bagus, tapi perlu dicek juga apakah pertumbuhan itu diikuti laba yang ikut naik.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Pertumbuhan Laba Bersih (YoY)</div>
+      <div class="legend-item-formula">(Laba bersih tahun ini ÷ Laba bersih tahun lalu − 1) × 100%</div>
+      <div class="legend-item-source">"Laba (rugi) yang dapat diatribusikan ke entitas induk" di Laporan Laba Rugi.</div>
+      <div class="legend-item-meaning">Seberapa cepat keuntungan bersih perusahaan tumbuh. Idealnya sejalan atau lebih cepat dari pertumbuhan pendapatan — kalau pendapatan naik tapi laba stagnan/turun, berarti biaya ikut membengkak.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Margin Laba Bersih</div>
+      <div class="legend-item-formula">Laba bersih ÷ Pendapatan × 100%</div>
+      <div class="legend-item-source">Sama seperti dua item di atas, dari Laporan Laba Rugi.</div>
+      <div class="legend-item-meaning">Dari setiap Rp100 penjualan, berapa yang benar-benar jadi keuntungan bersih. Semakin tinggi, semakin efisien perusahaan mengelola biaya.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">ROE (Return on Equity)</div>
+      <div class="legend-item-formula">Laba bersih ÷ rata-rata Ekuitas (tahun ini &amp; tahun lalu) × 100%</div>
+      <div class="legend-item-source">Laba bersih dari Laporan Laba Rugi; "Jumlah ekuitas" dari Laporan Posisi Keuangan (neraca).</div>
+      <div class="legend-item-meaning">Seberapa efisien perusahaan memutar modal milik pemegang saham menjadi keuntungan. ROE tinggi berarti setiap rupiah modal pemegang saham menghasilkan laba yang lebih besar.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">ROA (Return on Assets)</div>
+      <div class="legend-item-formula">Laba bersih ÷ rata-rata Total Aset (tahun ini &amp; tahun lalu) × 100%</div>
+      <div class="legend-item-source">Laba bersih dari Laporan Laba Rugi; "Jumlah aset" dari Laporan Posisi Keuangan.</div>
+      <div class="legend-item-meaning">Seberapa efisien SELURUH aset perusahaan (termasuk yang dibiayai utang) menghasilkan laba. ROA yang rendah wajar untuk perusahaan padat aset atau berutang besar (mis. telko, infrastruktur).</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">EPS (Earnings per Share)</div>
+      <div class="legend-item-formula">Diambil langsung dari laporan, tidak dihitung ulang</div>
+      <div class="legend-item-source">"Laba (rugi) per saham dasar" di Laporan Laba Rugi — disajikan dalam mata uang laporan (emiten yang melapor dalam USD tampil dalam USD; dasbor mengonversinya ke Rupiah dengan kurs yang diinput sebelum dipakai menghitung PER).</div>
+      <div class="legend-item-meaning">Berapa laba yang menjadi hak setiap satu lembar saham. Emiten dengan saham beredar miliaran lembar dan laporan ber-mata-uang asing bisa punya EPS di bawah 1 (mis. beberapa sen USD) — itu normal, bukan angka nol. Dipakai sebagai dasar hitung PER (lihat bagian Valuasi).</div>
+    </div>
+  </div>
+
+  <div class="legend-group">
+    <div class="legend-group-title">Leverage &amp; Likuiditas</div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Debt-to-Equity (DER)</div>
+      <div class="legend-item-formula">Total Liabilitas ÷ Total Ekuitas</div>
+      <div class="legend-item-source">"Jumlah liabilitas" dan "Jumlah ekuitas" di Laporan Posisi Keuangan.</div>
+      <div class="legend-item-meaning">Perbandingan utang terhadap modal sendiri. DER 1x berarti utang sama besar dengan modal; makin tinggi, makin besar risiko perusahaan kalau ada gejolak suku bunga atau penurunan pendapatan.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Total Liabilitas / Aset</div>
+      <div class="legend-item-formula">Total Liabilitas ÷ Total Aset × 100%</div>
+      <div class="legend-item-source">"Jumlah liabilitas" dan "Jumlah aset" di Laporan Posisi Keuangan.</div>
+      <div class="legend-item-meaning">Berapa persen dari seluruh aset perusahaan yang dibiayai oleh utang (sisanya dibiayai modal sendiri).</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Current Ratio</div>
+      <div class="legend-item-formula">Aset Lancar ÷ Liabilitas Jangka Pendek</div>
+      <div class="legend-item-source">"Jumlah aset lancar" dan "Jumlah liabilitas jangka pendek" di Laporan Posisi Keuangan.</div>
+      <div class="legend-item-meaning">Kemampuan perusahaan membayar kewajiban jangka pendek pakai aset yang cepat dicairkan. Di bawah 1x berarti aset lancarnya tidak cukup menutup utang jangka pendek — perlu dicek arus kasnya untuk tahu apakah ini beneran masalah atau sekadar pola bisnis normal.</div>
+    </div>
+  </div>
+
+  <div class="legend-group">
+    <div class="legend-group-title">Arus Kas</div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Arus Kas Operasi (OCF)</div>
+      <div class="legend-item-formula">Diambil langsung dari laporan, tidak dihitung ulang</div>
+      <div class="legend-item-source">"Jumlah arus kas bersih ... aktivitas operasi" di Laporan Arus Kas.</div>
+      <div class="legend-item-meaning">Uang tunai riil yang masuk dari kegiatan bisnis inti (bukan angka akuntansi di atas kertas). Kalau ini jauh lebih kecil dari laba bersih, itu tanda perlu diwaspadai — laba yang dilaporkan mungkin belum jadi uang tunai beneran.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Free Cash Flow (FCF)</div>
+      <div class="legend-item-formula">Arus Kas Operasi − Belanja Modal (Capex)</div>
+      <div class="legend-item-source">OCF dari Laporan Arus Kas bagian operasi; Capex dari "Pembayaran untuk perolehan aset tetap" di bagian investasi.</div>
+      <div class="legend-item-meaning">Sisa uang tunai setelah perusahaan membiayai belanja modal (pabrik, mesin, infrastruktur). Ini sumber dana sebenarnya untuk bayar dividen, lunasi utang, atau ekspansi lebih lanjut.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Dividen Dibayarkan</div>
+      <div class="legend-item-formula">Diambil langsung dari laporan, tidak dihitung ulang</div>
+      <div class="legend-item-source">"Pembayaran dividen" di Laporan Arus Kas bagian aktivitas pendanaan.</div>
+      <div class="legend-item-meaning">Jumlah uang tunai yang benar-benar dibayarkan ke pemegang saham sebagai dividen pada periode ini.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Cash Dividend Payout</div>
+      <div class="legend-item-formula">Dividen yang Dibayarkan ÷ Arus Kas Operasi (periode yang sama) × 100%</div>
+      <div class="legend-item-source">Kedua angka dari Laporan Arus Kas, periode yang sama.</div>
+      <div class="legend-item-meaning">Berapa persen kas dari operasi yang "habis" untuk bayar dividen. Sengaja dibagi dengan arus kas operasi (bukan laba bersih), karena dividen yang dibayar tahun ini biasanya keputusan atas laba tahun SEBELUMNYA — membaginya dengan laba tahun ini bisa menyesatkan. Semakin rendah, semakin banyak sisa kas untuk investasi/pelunasan utang.</div>
+    </div>
+  </div>
+
+  <div class="legend-group">
+    <div class="legend-group-title">Valuasi &amp; Harga Saham</div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">PER (Price to Earnings Ratio)</div>
+      <div class="legend-item-formula">Harga Saham ÷ EPS</div>
+      <div class="legend-item-source">Harga dari CSV yang diupload; EPS dari Laporan Laba Rugi (dikonversi ke Rupiah dulu bila laporan ber-mata-uang asing).</div>
+      <div class="legend-item-meaning">Berapa kali lipat harga saham dibanding laba tahunan per lembarnya. PER 15x berarti butuh 15 tahun laba (dengan asumsi laba flat) untuk "balik modal" dari harga beli saat ini. PER rendah bisa berarti murah — atau bisa juga pasar melihat risiko/pertumbuhan yang lemah, jadi tidak bisa dibaca sendirian.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">PBV (Price to Book Value)</div>
+      <div class="legend-item-formula">Harga Saham ÷ (Ekuitas milik pemegang saham induk ÷ Jumlah saham beredar)</div>
+      <div class="legend-item-source">Harga dari CSV; ekuitas dari "Jumlah ekuitas yang dapat diatribusikan ke entitas induk" di Laporan Posisi Keuangan (BUKAN total ekuitas biasa — lihat catatan di bawah); jumlah saham beredar dari input manual.</div>
+      <div class="legend-item-meaning">Berapa kali lipat harga saham dibanding nilai buku (aset bersih) per lembarnya. Sengaja memakai ekuitas milik pemilik induk saja (bukan total ekuitas termasuk kepentingan non-pengendali di anak perusahaan) — untuk perusahaan holding besar, memakai total ekuitas biasa bisa membuat PBV salah jauh lebih kecil dari kenyataan.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Dividend Yield</div>
+      <div class="legend-item-formula">(Dividen dibayar ÷ Jumlah saham beredar) ÷ Harga Saham × 100%</div>
+      <div class="legend-item-source">Dividen dari Laporan Arus Kas; harga dari CSV; jumlah saham beredar dari input manual.</div>
+      <div class="legend-item-meaning">Berapa persen imbal hasil dividen tahunan dibanding harga saham saat ini. Relevan untuk strategi investasi berbasis pendapatan pasif/dividen, bukan cuma capital gain.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Volatilitas Tahunan</div>
+      <div class="legend-item-formula">Standar deviasi return harian × √252 (hari bursa setahun) × 100%</div>
+      <div class="legend-item-source">Seluruh data harga penutupan harian dari CSV yang diupload.</div>
+      <div class="legend-item-meaning">Seberapa liar naik-turunnya harga saham dalam setahun. Makin tinggi, makin besar ayunan harga yang perlu disiapkan secara psikologis kalau mau memegang saham ini.</div>
+    </div>
+
+    <div class="legend-item">
+      <div class="legend-item-name">Max Drawdown</div>
+      <div class="legend-item-formula">Penurunan terbesar dari titik puncak ke titik terendah berikutnya, dalam periode data CSV</div>
+      <div class="legend-item-source">Seluruh data harga penutupan harian dari CSV yang diupload.</div>
+      <div class="legend-item-meaning">Kerugian terburuk yang pernah dialami investor kalau beli di puncak dan jual di titik terendah setelahnya, dalam rentang data yang diupload. Berguna untuk menyiapkan ekspektasi risiko sebelum masuk.</div>
+    </div>
+  </div>
+
+  <div class="page-note">
+    Angka di dasbor hasil ekstraksi otomatis dari laporan keuangan (PDF/Excel) dan bukan nasihat keuangan. Patokan "Baik/Wajar/Perhatikan" adalah heuristik umum lintas industri, bukan standar resmi — rasio yang wajar sangat tergantung sektor (bank, telko, dan consumer goods punya struktur neraca yang berbeda jauh). Untuk emiten yang melaporkan dalam mata uang asing (mis. POWR ber-USD), EPS/BVPS/dividen per saham tampil dalam mata uang laporan; dasbor mengonversinya ke Rupiah dengan kurs yang diinput sebelum menghitung PER/PBV/dividend yield.
+  </div>
+
+</div>
+</body>
+</html>
