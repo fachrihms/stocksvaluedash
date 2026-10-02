@@ -1,0 +1,18 @@
+# GANTI app di bawah dengan nama aplikasi Fly.io kamu
+# (lihat di dashboard fly.io atau hasil `fly apps list`).
+app = "ganti-dengan-nama-aplikasi"
+primary_region = "sin"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
