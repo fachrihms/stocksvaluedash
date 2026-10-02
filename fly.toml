@@ -1,6 +1,6 @@
 # GANTI app di bawah dengan nama aplikasi Fly.io kamu
 # (lihat di dashboard fly.io atau hasil `fly apps list`).
-app = "ganti-dengan-nama-aplikasi"
+app = "intrival"
 primary_region = "sin"
 
 [build]
